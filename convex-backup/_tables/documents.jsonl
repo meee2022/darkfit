@@ -1,0 +1,15 @@
+{"name":"articles","id":10001}
+{"name":"authAccounts","id":10002}
+{"name":"authRateLimits","id":10003}
+{"name":"authRefreshTokens","id":10004}
+{"name":"authSessions","id":10005}
+{"name":"authVerificationCodes","id":10006}
+{"name":"authVerifiers","id":10007}
+{"name":"exercises","id":10008}
+{"name":"foods","id":10009}
+{"name":"nutritionLogs","id":10010}
+{"name":"nutritionPlans","id":10011}
+{"name":"profiles","id":10012}
+{"name":"users","id":10013}
+{"name":"workoutSessions","id":10014}
+{"name":"trainers","id":10015}

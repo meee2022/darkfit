@@ -1,0 +1,407 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* =========================
+   Global Base Styles (ديناميكي حسب dir من App)
+========================= */
+
+html {
+  /* ❌ شيلنا direction: rtl; الثابت */
+  font-size: 15px;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+@media (min-width: 640px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+body {
+  font-family: "Cairo", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+  background-color: #0a0d08;
+  /* إزالة النيون من الخلفية */
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(89, 242, 13, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(89, 242, 13, 0.02) 0%, transparent 50%);
+  background-attachment: fixed;
+  color: #f9fafb;
+  font-weight: 500;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* =========================
+   Inputs RTL/LTR Support (ديناميكي)
+========================= */
+
+/* ✅ عربي - يمين */
+[dir="rtl"] input,
+[dir="rtl"] select,
+[dir="rtl"] textarea {
+  text-align: right;
+  font-weight: 600;
+}
+
+[dir="rtl"] ::placeholder {
+  text-align: right;
+  font-weight: 500;
+}
+
+/* ✅ إنجليزي - يسار */
+[dir="ltr"] input,
+[dir="ltr"] select,
+[dir="ltr"] textarea {
+  text-align: left;
+  font-weight: 600;
+}
+
+[dir="ltr"] ::placeholder {
+  text-align: left;
+  font-weight: 500;
+}
+
+/* =========================
+   Scrollbar
+========================= */
+
+::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #59f20d;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4ed10a;
+}
+
+/* =========================
+   Gym Pro Theme Utilities
+========================= */
+
+@layer utilities {
+  /* خلفية التطبيق العامة */
+  .bg-app {
+    @apply bg-[#0a0d08];
+    background-image: radial-gradient(
+      900px 500px at 50% -10%,
+      rgba(89, 242, 13, 0.18),
+      transparent 60%
+    );
+  }
+
+  .text-app {
+    @apply text-zinc-100;
+  }
+
+  /* عناوين ونصوص عامة */
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-zinc-50;
+  }
+
+  p {
+    @apply text-zinc-300;
+  }
+
+  /* Cards لجميع الشاشات بدون نيون */
+  .card {
+    @apply bg-[#1a2318]/90 border border-[#59f20d]/30 rounded-3xl backdrop-blur;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(89, 242, 13, 0.5);
+  }
+
+  .card-inner {
+    @apply bg-[#1a2318]/70 border border-[#59f20d]/20 rounded-2xl;
+    transition: all 0.3s ease;
+  }
+
+  .card-inner:hover {
+    background-color: rgba(26, 35, 24, 0.85);
+    border-color: rgba(89, 242, 13, 0.35);
+  }
+
+  /* Badges */
+  .cnbadge {
+    @apply inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-bold;
+  }
+  .badge-on {
+    @apply border-[#59f20d] text-[#59f20d] bg-[#59f20d]/10;
+  }
+  .badge-off {
+    @apply border-slate-600 text-slate-300 bg-slate-800;
+  }
+
+  /* Buttons بدون نيون */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-3xl font-bold
+      bg-[#59f20d] text-[#0a0d08];
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px) scale(1.02);
+    background-color: #4ed10a;
+  }
+
+  .btn-primary:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-3xl font-semibold
+      border-2 border-[#59f20d]/30 bg-[#1a2318]/70 text-zinc-100
+      backdrop-blur-sm;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-secondary:hover {
+    border-color: rgba(89, 242, 13, 0.6);
+    background-color: rgba(26, 35, 24, 0.9);
+    transform: translateY(-1px);
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-3xl font-semibold
+      bg-rose-500 text-white;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-danger:hover {
+    background-color: #f43f5e;
+    transform: translateY(-1px);
+  }
+
+  .btn-nav {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-3xl text-sm font-semibold border-2 whitespace-nowrap;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-nav-active {
+    @apply bg-[#59f20d] text-[#0a0d08] border-transparent;
+  }
+
+  .btn-nav-idle {
+    @apply bg-[#1a2318]/70 text-zinc-200 border-[#59f20d]/20;
+  }
+
+  .btn-nav-idle:hover {
+    background-color: rgba(42, 53, 40, 0.8);
+    border-color: rgba(89, 242, 13, 0.4);
+    transform: translateY(-1px);
+  }
+
+  /* Icon bubble 3D بدون نيون */
+  .icon-bubble {
+    @apply w-14 h-14 rounded-3xl flex items-center justify-center border-2 border-[#59f20d]/40
+      bg-gradient-to-br from-[#59f20d]/20 to-[#59f20d]/5 text-[#59f20d];
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .icon-bubble:hover {
+    transform: translateY(-3px) scale(1.05);
+    border-color: rgba(89, 242, 13, 0.7);
+  }
+
+  /* Inputs محسنة */
+  .input {
+    @apply w-full rounded-3xl border-2 border-[#2a3528] bg-[#1a2318]/80 text-slate-100 text-sm
+      px-4 py-3 backdrop-blur-sm;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .input:focus {
+    outline: none;
+    border-color: #59f20d;
+    background-color: rgba(26, 35, 24, 0.95);
+  }
+
+  .input::placeholder {
+    color: rgb(100 116 139);
+  }
+
+  /* Toolbars */
+  .toolbar {
+    @apply flex items-center justify-between gap-3 flex-wrap mb-4;
+  }
+
+  .toolbar-left {
+    @apply flex items-center gap-2 flex-1;
+  }
+
+  .toolbar-search {
+    @apply input max-w-xs;
+  }
+
+  /* Typography Tokens */
+  .t-h1 {
+    @apply text-xl sm:text-2xl font-bold text-zinc-50 leading-tight;
+  }
+  .t-h2 {
+    @apply text-lg sm:text-xl font-bold text-zinc-50 leading-tight;
+  }
+  .t-h3 {
+    @apply text-base sm:text-lg font-semibold text-zinc-50 leading-snug;
+  }
+  .t-body {
+    @apply text-sm sm:text-base font-medium text-zinc-300 leading-relaxed;
+  }
+  .t-muted {
+    @apply text-xs sm:text-sm font-medium text-zinc-400 leading-relaxed;
+  }
+  .t-label {
+    @apply text-xs font-semibold text-zinc-400;
+  }
+  .t-mini {
+    @apply text-[11px] sm:text-xs font-medium text-zinc-500;
+  }
+
+  /* Chips/Badges صغيرة */
+  .chip {
+    @apply px-3 py-1.5 rounded-2xl text-xs font-semibold border border-emerald-500/25
+      bg-zinc-950/70 text-zinc-100;
+  }
+
+  /* نص أخضر بدون نيون */
+  .text-neon-gym {
+    color: #59f20d;
+  }
+}
+
+/* تحسين الطباعة العربية */
+html[dir="rtl"] {
+  font-feature-settings: "ss01" 1;
+}
+
+/* =========================
+   Advanced Animations
+========================= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.5s ease-out forwards;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.5s ease-out forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.4s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Stagger animations for lists */
+.stagger-item {
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0.1s; }
+.stagger-item:nth-child(2) { animation-delay: 0.2s; }
+.stagger-item:nth-child(3) { animation-delay: 0.3s; }
+.stagger-item:nth-child(4) { animation-delay: 0.4s; }
+.stagger-item:nth-child(5) { animation-delay: 0.5s; }
+.stagger-item:nth-child(6) { animation-delay: 0.6s; }

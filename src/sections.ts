@@ -1,0 +1,14 @@
+export type SectionId = 
+  | "dashboard"
+  | "exercises"
+  | "nutrition"
+  | "supplements"
+  | "calculator"
+  | "coaches"
+  | "account"
+  | "health"
+  | "plans"
+  | "coachPlans"
+  | "admin"
+  | "fitbot"
+  | "profile";

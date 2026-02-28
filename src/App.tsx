@@ -1,0 +1,308 @@
+import { Authenticated, Unauthenticated, useQuery } from "convex/react";
+import { api } from "../convex/_generated/api";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
+import { Dashboard } from "./components/Dashboard";
+import { ExerciseSection } from "./components/ExerciseSection";
+import NutritionSection from "./components/NutritionSection";
+import { CalorieCalculator } from "./components/CalorieCalculator";
+import { AdminPanel } from "./components/AdminPanel";
+import { ProfileSetup } from "./components/ProfileSetup";
+import { Coaches } from "./components/Coaches";
+import { Supplements } from "./components/Supplements";
+import { HealthSection } from "./components/HealthSection";
+import { AccountSettings } from "./components/AccountSettings";
+import { ProfileSection } from "./components/ProfileSection";
+
+import { CoachWorkoutPlanForm } from "./components/CoachWorkoutPlanForm";
+import { MyPlans } from "./components/MyPlans";
+import { MyNutritionPlan } from "./components/MyNutritionPlan";
+
+import { useLanguage } from "./lib/i18n";
+import { ResetCardStandalone } from "./ResetCardStandalone";
+import { SignInForm } from "./SignInForm";
+
+import type { SectionId } from "./sections";
+import { Header } from "./layout/Header";
+import { TopNav } from "./layout/TopNav";
+import { MobileBottomNav } from "./layout/MobileBottomNav";
+import splashLogo from "./assets/splash.jpg";
+import FitBot from "./components/FitBot";
+import { NotificationManager } from "./components/NotificationManager";
+import { WorkoutTimer } from "./components/WorkoutTimer";
+
+
+/* ============ Splash Screen ============ */
+
+function SplashScreen() {
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black overflow-hidden pt-6">
+      {/* هالة نيون خضراء أهدى */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+        className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.18),transparent_60%)]"
+      />
+
+      <div className="relative flex flex-col items-center gap-6">
+        {/* كرت الشعار مع حركة دخول احترافية */}
+        <motion.div
+          initial={{ y: -100, opacity: 0, scale: 0.5 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          transition={{
+            type: "spring",
+            stiffness: 100,
+            damping: 15,
+            delay: 0.2
+          }}
+          className="relative group"
+        >
+          {/* نبض إضافي خلف اللوجو */}
+          <motion.div
+            animate={{
+              scale: [1, 1.1, 1],
+              opacity: [0.5, 0.8, 0.5]
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute inset-0 rounded-3xl bg-[#59f20d]/20 blur-xl"
+          />
+
+          <div className="w-52 h-52 max-w-[70vw] max-h-[70vw] rounded-3xl bg-black shadow-[0_0_50px_rgba(89,242,13,0.4)] border border-[#59f20d]/50 relative z-10 overflow-hidden p-1">
+            <div className="w-full h-full rounded-[1.3rem] overflow-hidden border border-black/60">
+              <img
+                src={splashLogo}
+                alt="DarkFit logo"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* نص تحت الشعار بحركة ظهور تدريجية */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.5 }}
+          className="flex flex-col items-center gap-2"
+        >
+          <h2 className="text-2xl font-black tracking-widest text-[#59f20d] uppercase italic">
+            DARKFIT
+          </h2>
+          <p className="text-xs font-medium tracking-[0.3em] text-zinc-400 uppercase">
+            {/* Split tagline for individual letter animation if needed, or just fade */}
+            لياقة • تغذية • صحة
+          </p>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ App ============ */
+
+export default function App() {
+  const { t, language, dir } = useLanguage();
+
+  // حالة إظهار / إخفاء شاشة الـ Splash
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("dir", dir);
+    document.documentElement.setAttribute("lang", language);
+  }, [dir, language]);
+
+  // إخفاء الـ Splash بعد 2 ثانية (تقدر تزود/تقلل المدة)
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setShowSplash(false);
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  const tr = (key: string, fallback: string) => {
+    try {
+      const v = typeof t === "function" ? (t as any)(key) : "";
+      if (!v || v === key) return fallback;
+      return v;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
+  const [showProfilePrompt, setShowProfilePrompt] = useState(false);
+
+  const userProfile = useQuery(api.profiles.getCurrentProfile);
+  const isAdmin = useQuery(api.profiles.checkAdminStatus);
+
+  const needsProfile = userProfile === null;
+
+  // لو الـ Splash لسه ظاهر، رجّعه لوحده
+  if (showSplash) {
+    return <SplashScreen />;
+  }
+
+  return (
+    <div className="min-h-screen bg-herb-50 text-zinc-900 dark:bg-[#1a2318] dark:text-zinc-50 font-sans">
+      <div className="bg-app-gradient fixed inset-0 -z-10 opacity-80" />
+
+      <Header
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+        isAdmin={!!isAdmin}
+      />
+
+      <main className="flex-1">
+        <Authenticated>
+          <NotificationManager />
+          <WorkoutTimer />
+
+          {userProfile === undefined ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-10 w-10 rounded-full border-4 border-herb-300 border-t-neon-400 animate-spin" />
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  {language === "ar"
+                    ? "جارِ تحميل حسابك الشخصي..."
+                    : "Loading your profile..."}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <TopNav
+                activeSection={activeSection}
+                setActiveSection={setActiveSection}
+              />
+
+              <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 pb-24 md:pb-8">
+                <div className="bg-white/90 dark:bg-[#1a2318]/70 backdrop-blur rounded-3xl shadow-soft border border-herb-100 dark:border-[#59f20d]/10 p-4 sm:p-6 md:p-8">
+                  {/* Banner لو مافيش profile */}
+                  {needsProfile && !showProfilePrompt && (
+                    <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xl">✨</span>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-sm text-emerald-900 dark:text-emerald-100">
+                            {language === "ar"
+                              ? "استمتع بالتصفح! 🎯"
+                              : "Enjoy browsing! 🎯"}
+                          </h3>
+                          <p className="text-xs text-emerald-700 dark:text-[#59f20d]">
+                            {language === "ar"
+                              ? "لتسجيل تمارينك وحساب سعراتك، أكمل ملفك الشخصي"
+                              : "To track workouts & calculate calories, complete your profile"}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowProfilePrompt(true)}
+                        className="px-4 py-2 rounded-full bg-[#59f20d] text-zinc-950 font-bold text-sm hover:brightness-95 transition whitespace-nowrap"
+                      >
+                        {language === "ar"
+                          ? "إكمال الملف"
+                          : "Complete Profile"}
+                      </button>
+                    </div>
+                  )}
+
+                  {showProfilePrompt ? (
+                    <div>
+                      <button
+                        onClick={() => setShowProfilePrompt(false)}
+                        className="mb-4 text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-2"
+                      >
+                        <span>←</span>
+                        {language === "ar"
+                          ? "العودة للتصفح"
+                          : "Back to browsing"}
+                      </button>
+                      <ProfileSetup />
+                    </div>
+                  ) : (
+                    <>
+                      {activeSection === "dashboard" && (
+                        <Dashboard onNavigate={(id) => setActiveSection(id)} />
+                      )}
+
+                      {activeSection === "exercises" && <ExerciseSection />}
+                      {activeSection === "nutrition" && <NutritionSection />}
+                      {activeSection === "supplements" && <Supplements />}
+                      {activeSection === "calculator" && <CalorieCalculator />}
+                      {activeSection === "coaches" && <Coaches />}
+                      {activeSection === "account" && <AccountSettings />}
+                      {activeSection === "health" && <HealthSection />}
+                      {activeSection === "fitbot" && <FitBot />}
+                      {activeSection === "profile" && <ProfileSection />}
+
+                      {activeSection === "plans" && <MyPlans />}
+
+                      {activeSection === "coachPlans" && isAdmin && (
+                        <CoachWorkoutPlanForm />
+                      )}
+
+                      {activeSection === "admin" && isAdmin && <AdminPanel />}
+
+                      {activeSection === "admin" && !isAdmin && (
+                        <p className="mt-4 text-sm text-red-500">
+                          {language === "ar"
+                            ? "لا تملك صلاحية الدخول إلى لوحة التحكم."
+                            : "You do not have permission to access the admin panel."}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <MobileBottomNav
+                activeSection={activeSection}
+                onChange={setActiveSection}
+              />
+            </>
+          )}
+        </Authenticated>
+
+        <Unauthenticated>
+          <UnauthGate
+            subtitle={tr("sign_in_sub", "رحلتك نحو اللياقة تبدأ هنا")}
+          />
+        </Unauthenticated>
+      </main>
+    </div>
+  );
+}
+
+function UnauthGate({ subtitle }: { subtitle: string }) {
+  const path =
+    typeof window !== "undefined" ? window.location.pathname : "/";
+  const isReset = path === "/reset" || path === "/reset/";
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6 bg-zinc-50 dark:bg-[#09090b] text-zinc-900 dark:text-zinc-50">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(89,242,13,0.05),transparent_70%)]" />
+      <div className="w-full max-w-md bg-white/95 dark:bg-zinc-900/60 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_0_60px_rgba(0,0,0,0.5)] border border-zinc-200 dark:border-zinc-800/50 overflow-hidden relative">
+        <div className="px-6 pt-10 pb-4 text-center">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-zinc-900 dark:text-[#59f20d] mb-3 uppercase italic drop-shadow-[0_0_15px_rgba(89,242,13,0.3)]">
+            DARKFIT
+          </h1>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 font-medium tracking-wide">
+            {subtitle}
+          </p>
+        </div>
+
+        <div className="px-6 pb-10">
+          {isReset ? <ResetCardStandalone /> : <SignInForm />}
+        </div>
+      </div>
+    </div>
+  );
+}

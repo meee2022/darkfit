@@ -1,0 +1,60 @@
+
+/* =========================
+   UPDATE PROFILE
+========================= */
+
+export const updateProfile = mutation({
+  args: {
+    name: v.optional(v.string()),
+    age: v.optional(v.number()),
+    weight: v.optional(v.number()),
+    height: v.optional(v.number()),
+    gender: v.optional(v.union(v.literal("male"), v.literal("female"))),
+    fitnessLevel: v.optional(v.union(
+      v.literal("beginner"),
+      v.literal("intermediate"),
+      v.literal("advanced")
+    )),
+    goal: v.optional(v.string()),
+    currentWeight: v.optional(v.number()),
+    targetWeight: v.optional(v.number()),
+    membershipType: v.optional(v.string()),
+    memberSince: v.optional(v.string()),
+    profileImage: v.optional(v.string()),
+    energy: v.optional(v.number()),
+    calories: v.optional(v.number()),
+    heartRate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!profile) throw new Error("Profile not found");
+
+    const updateData: any = {};
+    if (args.name !== undefined) updateData.name = args.name;
+    if (args.age !== undefined) updateData.age = args.age;
+    if (args.weight !== undefined) updateData.weight = args.weight;
+    if (args.height !== undefined) updateData.height = args.height;
+    if (args.gender !== undefined) updateData.gender = args.gender;
+    if (args.fitnessLevel !== undefined) updateData.fitnessLevel = args.fitnessLevel;
+    if (args.goal !== undefined) updateData.goal = args.goal;
+    if (args.currentWeight !== undefined) updateData.currentWeight = args.currentWeight;
+    if (args.targetWeight !== undefined) updateData.targetWeight = args.targetWeight;
+    if (args.membershipType !== undefined) updateData.membershipType = args.membershipType;
+    if (args.memberSince !== undefined) updateData.memberSince = args.memberSince;
+    if (args.profileImage !== undefined) updateData.profileImage = args.profileImage;
+    if (args.energy !== undefined) updateData.energy = args.energy;
+    if (args.calories !== undefined) updateData.calories = args.calories;
+    if (args.heartRate !== undefined) updateData.heartRate = args.heartRate;
+
+    await ctx.db.patch(profile._id, updateData);
+
+    return true;
+  },
+});
