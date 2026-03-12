@@ -135,6 +135,7 @@ const DICT: Dict = {
   calories: { ar: "السعرات", en: "Calories" },
 
   /* Goals */
+  profile_desc: { ar: "تابع تقدمك وحقق أهدافك الصحية والرياضية.", en: "Track your progress and achieve your health and fitness goals." },
   your_goals: { ar: "أهدافك الرياضية", en: "Your Fitness Goals" },
   no_goals: { ar: "لم يتم تحديد أهداف بعد.", en: "No goals have been set yet." },
 
@@ -314,6 +315,82 @@ const DICT: Dict = {
     ar: "حدث خطأ ما، حاول مرة أخرى.",
     en: "Something went wrong, please try again.",
   },
+
+  /* Navigation – missing keys */
+  supplements:      { ar: "المكملات",           en: "Supplements" },
+  workout_generator:{ ar: "مولد التمارين",       en: "Workout Generator" },
+  plans:            { ar: "خططي",               en: "My Plans" },
+  profile:          { ar: "الملف الشخصي",        en: "Profile" },
+  fitbot:           { ar: "المساعد الذكي",        en: "AI Assistant" },
+  coach_plans:      { ar: "خطط المتدربين",        en: "Trainee Plans" },
+
+  /* Dashboard – missing keys */
+  dashboard_active: { ar: "نشط الآن",            en: "Active Now" },
+  explore_now:      { ar: "استكشف الآن",          en: "Explore Now" },
+  main_sections:    { ar: "استكشف الأقسام",       en: "Explore Sections" },
+  all_sections:     { ar: "جميع الأقسام",         en: "All Sections" },
+  view_all_sections:{ ar: "عرض جميع الأقسام",     en: "View All Sections" },
+  start_workout:    { ar: "ابدأ التمرين الآن",    en: "Start Workout Now" },
+  goal_target:      { ar: "الهدف:",              en: "Target:" },
+  total_hours:      { ar: "إجمالي الساعات",       en: "Total Hours" },
+  years:            { ar: "عام",                 en: "yr" },
+
+  /* BMI categories */
+  bmi_underweight:  { ar: "نحيف",               en: "Underweight" },
+  bmi_normal:       { ar: "طبيعي",              en: "Normal" },
+  bmi_overweight:   { ar: "زائد",               en: "Overweight" },
+  bmi_obese:        { ar: "سمنة",               en: "Obese" },
+
+  /* FitBot */
+  fitbot_title:     { ar: "فِتْبوت",             en: "FitBot" },
+  fitbot_subtitle:  { ar: "مساعدك الذكي للياقة والتغذية", en: "Your AI fitness & nutrition assistant" },
+  fitbot_help:      { ar: "يمكنني مساعدتك في: التمارين، التغذية، بناء العضلات، خسارة الوزن، نصائح اللياقة", en: "I can help with: workouts, nutrition, muscle building, weight loss, fitness tips" },
+  fitbot_welcome:   { ar: "مرحباً بك!", en: "Welcome!" },
+  fitbot_ask:       { ar: "اسألني أي سؤال عن اللياقة والتغذية", en: "Ask me anything about fitness and nutrition" },
+  fitbot_remaining: { ar: "أسئلة متبقية اليوم", en: "Questions left today" },
+  fitbot_send:      { ar: "إرسال", en: "Send" },
+  fitbot_clear:     { ar: "مسح السجل", en: "Clear history" },
+  fitbot_quick:     { ar: "أسئلة سريعة:", en: "Quick questions:" },
+  fitbot_beta:      { ar: "نسخة تجريبية (Beta) - ساعدنا بتقييم الإجابات", en: "Beta version – Help us by rating answers" },
+  fitbot_useful:    { ar: "مفيد",               en: "Helpful" },
+  fitbot_not_useful:{ ar: "غير مفيد",            en: "Not helpful" },
+  fitbot_chars:     { ar: "حرف",                en: "chars" },
+  fitbot_back:      { ar: "الرجوع للرئيسية",     en: "Back to Home" },
+  fitbot_clear_confirm: { ar: "هل تريد مسح سجل المحادثات؟", en: "Clear chat history?" },
+  fitbot_placeholder: { ar: "اكتب سؤالك هنا... (مثل: ما أفضل تمارين للصدر؟)", en: "Type your question here... (e.g. Best chest exercises?)" },
+
+  /* Profile */
+  profile_title:    { ar: "الملف الشخصي",        en: "Profile" },
+  complete_profile: { ar: "إكمال الملف",          en: "Complete Profile" },
+  back_to_browse:   { ar: "العودة للتصفح",        en: "Back to browsing" },
+  enjoy_browsing:   { ar: "استمتع بالتصفح! 🎯",   en: "Enjoy browsing! 🎯" },
+  complete_profile_desc: {
+    ar: "لتسجيل تمارينك وحساب سعراتك، أكمل ملفك الشخصي",
+    en: "To track workouts & calculate calories, complete your profile",
+  },
+
+  /* Coaches */
+  coaches_title:    { ar: "المدربون", en: "Coaches" },
+
+  /* Supplements */
+  supplements_title: { ar: "المكملات الغذائية", en: "Supplements" },
+
+  /* Dashboard Section Extras */
+  hide_sections: { ar: "إخفاء الأقسام", en: "Hide Sections" },
+  view_details: { ar: "عرض التفاصيل", en: "View Details" },
+  muscle_building: { ar: "بناء العضلات", en: "Muscle Building" },
+  health_vitamins: { ar: "الصحة والفيتامينات", en: "Health & Vitamins" },
+  energy_focus: { ar: "الطاقة والتركيز", en: "Energy & Focus" },
+  recovery_sleep: { ar: "الاستشفاء والنوم", en: "Recovery & Sleep" },
+  weight_loss: { ar: "خسارة الوزن", en: "Weight Loss" },
+
+  /* Theme */
+  theme: { ar: "المظهر", en: "Theme" },
+  theme_desc: { ar: "اختَر الوضع المناسب: فاتح أو داكن.", en: "Choose your preferred theme: light or dark." },
+  light: { ar: "فاتح", en: "Light" },
+  dark: { ar: "داكن", en: "Dark" },
+
+  no_admin_permission: { ar: "لا تملك صلاحية الدخول إلى لوحة التحكم.", en: "You do not have permission to access the admin panel." },
 };
 
 /* =========================

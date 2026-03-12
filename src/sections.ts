@@ -1,4 +1,4 @@
-export type SectionId = 
+export type SectionId =
   | "dashboard"
   | "exercises"
   | "nutrition"
@@ -11,4 +11,5 @@ export type SectionId =
   | "coachPlans"
   | "admin"
   | "fitbot"
-  | "profile";
+  | "profile"
+  | "workoutGenerator";

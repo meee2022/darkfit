@@ -219,11 +219,33 @@ export function MyPlans() {
   }
 
   // Plan Detail View
-  const exercisesPerDay = Math.ceil((selectedPlan.workoutExercises?.length || 0) / (selectedPlan.daysPerWeek || 1));
-  const dayExercises = selectedPlan.workoutExercises?.slice(
-    (activeDay - 1) * exercisesPerDay,
-    activeDay * exercisesPerDay
-  ) || [];
+  // Logic to determine exercises for the active day
+  const getDayExercises = () => {
+    if (!selectedPlan) return [];
+
+    // 1. Try to use schedule if it exists (the modern way)
+    if (selectedPlan.schedule && Array.isArray(selectedPlan.schedule)) {
+      const daySchedule = selectedPlan.schedule.find(
+        (s: any) => s.dayOfWeek === activeDay
+      );
+      if (daySchedule) {
+        return daySchedule.exerciseIds
+          .map((id: any) => 
+            selectedPlan.workoutExercises?.find((ex: any) => String(ex._id) === String(id))
+          )
+          .filter(Boolean);
+      }
+    }
+
+    // 2. Fallback to dividing the total exercises array across daysPerWeek
+    const exercisesPerDay = Math.ceil((selectedPlan.workoutExercises?.length || 0) / (selectedPlan.daysPerWeek || 1));
+    return selectedPlan.workoutExercises?.slice(
+      (activeDay - 1) * exercisesPerDay,
+      activeDay * exercisesPerDay
+    ) || [];
+  };
+
+  const dayExercises = getDayExercises();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a1508] via-[#0d1a0a] to-black text-white pb-20">
@@ -313,91 +335,108 @@ export function MyPlans() {
           {isAr ? "بدء التمرين" : "Start Workout"}
         </button>
 
-        {/* Exercises */}
-        <div className="space-y-3">
-          {dayExercises.length === 0 ? (
-            <div className="text-center py-12 text-zinc-500">
-              {isAr ? "لا توجد تمارين في هذا اليوم" : "No exercises for this day"}
+        {/* Exercises Table-like View */}
+        <div className="space-y-4">
+          <div className="bg-[#1a2318]/40 border border-[#59f20d]/20 rounded-t-3xl p-4 flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-[#59f20d]/60">
+            <div className="flex-1">{isAr ? "التمرين" : "Exercise"}</div>
+            <div className="flex gap-4 sm:gap-8 pr-4">
+              <div className="w-12 text-center">{isAr ? "مجموعات" : "Sets"}</div>
+              <div className="w-12 text-center">{isAr ? "تكرار" : "Reps"}</div>
+              <div className="w-12 text-center hidden sm:block">{isAr ? "راحة" : "Rest"}</div>
             </div>
-          ) : (
-            dayExercises.map((ex: any, idx: number) => {
-              const completed = Math.random() > 0.5; // Mock completion
-              
-              return (
-                <div
-                  key={ex._id}
-                  className={`relative overflow-hidden rounded-3xl p-5 border-2 ${
-                    completed
-                      ? "bg-[#59f20d]/10 border-[#59f20d]"
-                      : "bg-[#1a2318]/60 border-[#59f20d]/20"
-                  }`}
-                >
-                  {completed && (
-                    <div className="absolute top-3 right-3">
-                      <CheckCircle className="w-6 h-6 text-[#59f20d]" />
-                    </div>
-                  )}
+            <div className="w-8"></div>
+          </div>
 
-                  <div className="flex items-start gap-4 mb-4">
-                    {/* Exercise Image/Icon */}
-                    <div className="w-20 h-20 rounded-2xl bg-[#0a0d08] overflow-hidden flex-shrink-0">
-                      {ex.imageUrl ? (
-                        <img src={ex.imageUrl} alt={isAr ? ex.nameAr : ex.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-3xl">💪</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-white mb-1">
-                        {isAr ? ex.nameAr : ex.name}
-                      </h3>
-                      <p className="text-xs text-zinc-400 mb-2">{ex.muscleGroup}</p>
-                      
-                      {/* Sets/Reps */}
-                      <div className="flex items-center gap-4">
-                        <div className="px-3 py-1 rounded-full bg-[#0a0d08] border border-[#59f20d]/30">
-                          <span className="text-[#59f20d] font-bold text-sm">4 {isAr ? "مجموعات" : "sets"}</span>
-                        </div>
-                        <div className="px-3 py-1 rounded-full bg-[#0a0d08] border border-[#59f20d]/30">
-                          <span className="text-[#59f20d] font-bold text-sm">12 {isAr ? "تكرار" : "reps"}</span>
-                        </div>
-                        <div className="px-3 py-1 rounded-full bg-[#0a0d08] border border-[#59f20d]/30">
-                          <span className="text-[#59f20d] font-bold text-sm">60 {isAr ? "ثانية راحة" : "sec rest"}</span>
-                        </div>
+          <div className="space-y-2">
+            {dayExercises.length === 0 ? (
+              <div className="text-center py-12 text-zinc-600 bg-[#0a0d08] rounded-b-3xl border-x border-b border-[#59f20d]/10">
+                {isAr ? "لا توجد تمارين لهذا اليوم" : "No exercises for this day"}
+              </div>
+            ) : (
+              dayExercises.map((ex: any, idx: number) => {
+                const completed = Math.random() > 0.7; // Mock for visual demo
+                
+                return (
+                  <div
+                    key={ex._id}
+                    className={`group relative overflow-hidden flex items-center p-3 sm:p-4 border-l-4 transition-all duration-300 ${
+                      completed
+                        ? "bg-[#59f20d]/5 border-[#59f20d] opacity-60"
+                        : "bg-[#0a0d08] hover:bg-[#1a2318]/60 border-transparent hover:border-[#59f20d]/40"
+                    }`}
+                  >
+                    {/* Exercise Info */}
+                    <div className="flex-1 flex items-center gap-3 sm:gap-4 overflow-hidden">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        {ex.imageUrl ? (
+                          <img src={ex.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                        ) : (
+                          <span className="text-2xl">💪</span>
+                        )}
+                      </div>
+                      <div className="min-w-0 pr-2">
+                        <h4 className="text-sm sm:text-base font-bold text-white truncate group-hover:text-[#59f20d] transition-colors">
+                          {isAr ? ex.nameAr : ex.name}
+                        </h4>
+                        <p className="text-[10px] sm:text-xs text-zinc-400 mt-0.5 uppercase tracking-tighter">
+                          {isAr ? ex.muscleGroupAr : ex.muscleGroup}
+                        </p>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    {completed ? (
-                      <button className="flex-1 px-4 py-2 rounded-full bg-[#59f20d] text-black text-sm font-bold flex items-center justify-center gap-2">
-                        <CheckCircle className="w-4 h-4" />
-                        {isAr ? "تم أخذه ✓" : "Completed ✓"}
+                    {/* Stats Table */}
+                    <div className="flex gap-4 sm:gap-8 items-center pr-4">
+                      <div className="w-12 flex flex-col items-center">
+                        <span className="text-sm sm:text-lg font-black text-white">{ex.sets || 4}</span>
+                        <span className="text-[8px] sm:text-[9px] text-zinc-500 font-bold uppercase">{isAr ? "جلسات" : "Sets"}</span>
+                      </div>
+                      <div className="w-12 flex flex-col items-center">
+                        <span className="text-sm sm:text-lg font-black text-white">{ex.reps || "12"}</span>
+                        <span className="text-[8px] sm:text-[9px] text-zinc-500 font-bold uppercase">{isAr ? "تكرار" : "Reps"}</span>
+                      </div>
+                      <div className="w-12 hidden sm:flex flex-col items-center">
+                        <span className="text-sm sm:text-lg font-black text-[#59f20d]">{ex.rest || "60"}س</span>
+                        <span className="text-[8px] sm:text-[9px] text-zinc-500 font-bold uppercase">{isAr ? "راحة" : "Rest"}</span>
+                      </div>
+                    </div>
+
+                    {/* Status Icon */}
+                    <div className="w-8 flex justify-center">
+                      <button 
+                        onClick={() => handleStartExercise(ex)}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition ${
+                          completed 
+                            ? "bg-[#59f20d] text-black" 
+                            : "bg-zinc-800 text-zinc-500 hover:bg-[#59f20d] hover:text-black"
+                        }`}
+                      >
+                        {completed ? (
+                          <CheckCircle className="w-5 h-5" />
+                        ) : (
+                          <Play className="w-4 h-4 ml-0.5" />
+                        )}
                       </button>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleStartExercise(ex)}
-                          className="flex-1 px-4 py-2 rounded-full bg-[#59f20d] text-black text-sm font-bold hover:brightness-110 transition"
-                        >
-                          {isAr ? "3 مجموعات" : "3 sets"}
-                        </button>
-                        <button
-                          onClick={() => handleStartExercise(ex)}
-                          className="flex-1 px-4 py-2 rounded-full bg-[#59f20d] text-black text-sm font-bold hover:brightness-110 transition"
-                        >
-                          {isAr ? "4 مجموعات" : "4 sets"}
-                        </button>
-                      </>
+                    </div>
+
+                    {/* Completion Glow Overlay */}
+                    {completed && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[#59f20d]/5 pointer-events-none" />
                     )}
                   </div>
-                </div>
-              );
-            })
+                );
+              })
+            )}
+          </div>
+          
+          {/* Table Footer / Summary */}
+          {dayExercises.length > 0 && (
+            <div className="p-4 bg-[#1a2318]/20 rounded-b-3xl border-x border-b border-[#59f20d]/10 flex items-center justify-between text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
+              <span>{dayExercises.length} {isAr ? "تمارين مكتشفة" : "exercises discovered"}</span>
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#59f20d]"></span>
+                {isAr ? "جاهز للتنفيذ" : "Ready to execute"}
+              </span>
+            </div>
           )}
         </div>
       </div>

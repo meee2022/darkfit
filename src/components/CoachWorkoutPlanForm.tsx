@@ -127,6 +127,14 @@ export function CoachWorkoutPlanForm({ onNavigate }: Props) {
       // Collect all exercise IDs (flat list for backward compatibility)
       const allExerciseIds = days.flatMap(d => d.selectedExercises);
 
+      // Map days to the schedule format for the backend
+      const schedule = days.map(d => ({
+        weekNumber: 1, // Default to week 1 for now
+        dayOfWeek: d.dayNumber,
+        label: d.dayLabel,
+        exerciseIds: d.selectedExercises.map(id => id as any)
+      }));
+
       await assignWorkoutPlan({
         clientProfileId: selectedClient as any,
         exerciseIds: allExerciseIds.map((id) => id as any),
@@ -134,9 +142,15 @@ export function CoachWorkoutPlanForm({ onNavigate }: Props) {
         notes,
         level,
         daysPerWeek: days.length,
+        schedule,
       });
 
       toast.success(isAr ? "تم إرسال الخطة للمتدرب ✓" : "Plan sent successfully ✓");
+      
+      // Navigate back after small delay to show success
+      setTimeout(() => {
+        onNavigate?.("admin");
+      }, 1000);
       
       // Reset
       setTitle("");
@@ -368,11 +382,12 @@ export function CoachWorkoutPlanForm({ onNavigate }: Props) {
         </div>
 
         {/* Submit */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full px-6 py-4 rounded-2xl bg-[#59f20d] text-black font-bold text-lg flex items-center justify-center gap-3 hover:brightness-110 disabled:opacity-50 transition shadow-lg shadow-[#59f20d]/30"
-        >
+        <div className="relative z-30">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full px-6 py-4 rounded-2xl bg-[#59f20d] text-black font-bold text-lg flex items-center justify-center gap-3 hover:brightness-110 disabled:opacity-50 transition shadow-lg shadow-[#59f20d]/30"
+          >
           {loading ? (
             <div className="h-6 w-6 border-3 border-black border-t-transparent rounded-full animate-spin" />
           ) : (
@@ -382,6 +397,7 @@ export function CoachWorkoutPlanForm({ onNavigate }: Props) {
             </>
           )}
         </button>
+      </div>
       </form>
 
       {/* Client Search Modal */}

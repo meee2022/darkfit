@@ -25,7 +25,7 @@ type NavItem = {
 
 const BRAND = {
   primary: "#59f20d",
-  bgDark: "#020617",
+  bgDark: "#0c0c0c",
 };
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -169,7 +169,7 @@ function Hex({
   const innerSize = size - borderThickness * 2;
 
   const borderColor = active ? BRAND.primary : "rgba(35,242,100,0.4)";
-  const innerBg = "#020818";
+  const innerBg = "#000000";
   const color = active ? BRAND.primary : "#e5e7eb";
 
   return (
@@ -192,7 +192,7 @@ function Hex({
             width: innerSize,
             height: innerSize,
             background:
-              "radial-gradient(circle at 30% 0%, rgba(35,242,100,0.18), #020818 60%)",
+              "radial-gradient(circle at 30% 0%, rgba(35,242,100,0.18), #000000 60%)",
             clipPath: HEX_CLIP,
             color,
           }}
@@ -286,7 +286,7 @@ export function MobileBottomNav({ activeSection, onChange }: Props) {
             className="
               relative border-t shadow-[0_-18px_48px_rgba(0,0,0,0.12)]
               bg-white text-zinc-900 border-herb-100
-              dark:bg-[#020617] dark:text-slate-100 dark:border-[#59f20d]/30 dark:shadow-[0_-18px_48px_rgba(0,0,0,0.9)]
+              dark:bg-[#0c0c0c] dark:text-slate-100 dark:border-white/10 dark:shadow-[0_-18px_48px_rgba(0,0,0,0.9)]
             "
           >
             <div
@@ -370,7 +370,7 @@ export function MobileBottomNav({ activeSection, onChange }: Props) {
             className="absolute bottom-[88px] left-0 right-0 mx-auto max-w-7xl px-3"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="rounded-3xl bg-white border border-slate-200 shadow-soft dark:bg-[#0a0d08]/95 dark:border-slate-800 dark:shadow-[0_26px_80px_rgba(0,0,0,0.9)] p-3 space-y-1.5">
+            <div className="rounded-3xl bg-white border border-slate-200 shadow-soft dark:bg-[#0c0c0c]/95 dark:border-white/10 dark:shadow-[0_26px_80px_rgba(0,0,0,0.9)] p-3 space-y-1.5">
               {moreItems.map((item) => {
                 const Icon = item.icon;
                 const active = activeSection === item.id;
@@ -384,7 +384,7 @@ export function MobileBottomNav({ activeSection, onChange }: Props) {
                       "w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition bg-transparent outline-none focus:outline-none",
                       active
                         ? "bg-emerald-100 border border-[#59f20d] text-emerald-800 dark:bg-[#4ed10a]/15 dark:border-[#59f20d]/60 dark:text-emerald-100"
-                        : "border border-transparent text-slate-700 hover:bg-slate-100 hover:border-slate-200 dark:text-slate-200 dark:hover:bg-[#0a0d08]/80 dark:hover:border-slate-700"
+                        : "border border-transparent text-slate-700 hover:bg-slate-100 hover:border-slate-200 dark:text-slate-200 dark:hover:bg-white/5 dark:hover:border-white/10"
                     )}
                   >
                     <Hex active={active} size={60}>

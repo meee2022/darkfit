@@ -4,7 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { BodyModel } from "./BodyModel";
 import { ExerciseCard } from "./ExerciseCard";
 import { useLanguage } from "../lib/i18n";
-import { Dumbbell, X } from "lucide-react";
+import { Dumbbell, X, Search } from "lucide-react";
 
 function cn(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
@@ -40,6 +40,7 @@ export function ExerciseSection() {
 
   // ✅ State للعضلات المختارة (array)
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<MuscleId[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -85,21 +86,35 @@ export function ExerciseSection() {
   const exercises = useMemo(() => {
     if (!allExercises) return undefined;
 
-    // لو مافيش عضلات مختارة، ارجع الكل
-    if (selectedMuscleGroups.length === 0) {
-      return allExercises;
+    let filtered = allExercises;
+
+    // فلتر العضلات المختارة
+    if (selectedMuscleGroups.length > 0) {
+      filtered = filtered.filter((ex) => {
+        return selectedMuscleGroups.some((muscleId) => {
+          const possibleNames = muscleMapping[muscleId] || [];
+          return possibleNames.some((name) =>
+            ex.muscleGroup.toLowerCase().includes(name.toLowerCase())
+          );
+        });
+      });
     }
 
-    // افلتر التمارين باستخدام mapping ذكي
-    return allExercises.filter((ex) => {
-      return selectedMuscleGroups.some((muscleId) => {
-        const possibleNames = muscleMapping[muscleId] || [];
-        return possibleNames.some((name) =>
-          ex.muscleGroup.toLowerCase().includes(name.toLowerCase())
-        );
-      });
-    });
-  }, [allExercises, selectedMuscleGroups]);
+    // فلتر البحث النصي
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter((ex) =>
+        (ex.name || "").toLowerCase().includes(q) ||
+        (ex.nameAr || "").toLowerCase().includes(q) ||
+        (ex.muscleGroup || "").toLowerCase().includes(q) ||
+        (ex.muscleGroupAr || "").toLowerCase().includes(q) ||
+        (ex.description || "").toLowerCase().includes(q) ||
+        (ex.descriptionAr || "").toLowerCase().includes(q)
+      );
+    }
+
+    return filtered;
+  }, [allExercises, selectedMuscleGroups, searchQuery]);
 
   // ✅ قائمة العضلات المتاحة للاختيار (مع الترجمة)
   const allMuscleGroups = useMemo(() => {
@@ -156,6 +171,7 @@ export function ExerciseSection() {
     setSelectedMuscleGroups([]);
     setSelectedCategory("");
     setSelectedDifficulty("");
+    setSearchQuery("");
   };
 
   return (
@@ -252,6 +268,27 @@ export function ExerciseSection() {
       {/* Controls محسّن */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a2318]/70 to-[#0f1410]/50 backdrop-blur-xl border-2 border-[#2a3528] p-6 shadow-xl animate-slideIn">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#59f20d] to-transparent opacity-50" />
+
+        {/* 🔍 Search Bar */}
+        <div className="relative mb-5">
+          <Search className="absolute top-1/2 -translate-y-1/2 start-4 w-5 h-5 text-gray-500 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={language === "ar" ? "ابحث عن تمرين بالاسم أو العضلة..." : "Search by name or muscle..."}
+            className="w-full rounded-2xl border-2 border-[#2a3528] bg-black/50 backdrop-blur-sm text-sm font-medium text-zinc-100 ps-12 pe-12 py-3.5 placeholder:text-gray-500 focus:outline-none focus:border-[#59f20d] focus:ring-2 focus:ring-[#59f20d]/20 transition-all duration-300 hover:border-[#59f20d]/50"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute top-1/2 -translate-y-1/2 end-4 w-6 h-6 rounded-full bg-white/10 hover:bg-red-500/30 flex items-center justify-center transition-colors"
+            >
+              <X className="w-3.5 h-3.5 text-gray-400 hover:text-red-400" />
+            </button>
+          )}
+        </div>
 
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
           {/* Dropdowns */}

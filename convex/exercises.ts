@@ -1,4 +1,5 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, action, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
@@ -564,4 +565,181 @@ export const seedExternalExercises = mutation({
 
     return inserted;
   },
+});
+
+/* =========================
+   UPDATE EXERCISE GIFs FROM ExerciseDB
+========================= */
+
+// Internal mutation to get all exercises
+export const getAllExercisesInternal = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("exercises").collect();
+  },
+});
+
+// Internal mutation to update a single exercise's imageUrl
+export const updateExerciseImageUrl = internalMutation({
+  args: {
+    exerciseId: v.id("exercises"),
+    imageUrl: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.exerciseId, { imageUrl: args.imageUrl });
+  },
+});
+
+function normalizeExerciseName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+
+export const applyGifs = internalMutation({
+  args: {
+    items: v.any(), // array from RapidAPI
+  },
+  handler: async (ctx, args): Promise<number> => {
+    let inserted = 0;
+    
+    // Ensure items is an array
+    let items: any[] = [];
+    if (Array.isArray(args.items)) {
+      items = args.items;
+    } else if (args.items && Array.isArray(args.items.data)) {
+      items = args.items.data;
+    }
+
+    const existing = await ctx.db.query("exercises").collect();
+    // Normalize existing names to match against
+    const existingNames = new Map(existing.map((e: any) => [String(e.name).toLowerCase().trim(), e]));
+
+    for (const item of items) {
+      const name = String(item.name || "").trim();
+      if (!name) continue;
+      
+      // Build GIF URL from the exercise id (ExerciseDB CDN pattern)
+      const exerciseId: string = item.id || "";
+      const gifUrl: string = item.gifUrl || 
+        (exerciseId ? `https://v2.exercisedb.io/image/${exerciseId}` : "");
+      if (!gifUrl) continue;
+      
+      const normalizedName = name.toLowerCase();
+      
+      if (existingNames.has(normalizedName)) {
+         const match = existingNames.get(normalizedName);
+         if (match && match.imageUrl !== gifUrl) {
+            await ctx.db.patch(match._id, { imageUrl: gifUrl });
+            inserted++;
+         }
+         continue;
+      }
+      
+      // If it doesn't exist, Insert new exercise with GIF
+      const primary = String(item.target || "").toLowerCase();
+      const muscleGroup = mapMuscleGroup(primary);
+      const muscleGroupAr = getMuscleGroupAr(muscleGroup);
+      
+      const difficultyRaw = String(item.difficulty || "intermediate").toLowerCase();
+      const difficulty: "beginner" | "intermediate" | "advanced" = 
+        (difficultyRaw === "beginner" || difficultyRaw === "advanced") ? difficultyRaw : "intermediate";
+      
+      const equipmentRaw = item.equipment ? [String(item.equipment)] : [];
+      
+      await ctx.db.insert("exercises", {
+        name,
+        nameAr: "",
+        description: item.description || `Exercise targeting ${primary}.`,
+        descriptionAr: "تمرين يستهدف هذه العضلات.",
+        muscleGroup: muscleGroup as any,
+        muscleGroupAr,
+        difficulty,
+        equipment: equipmentRaw,
+        instructions: item.instructions || [],
+        instructionsAr: ["اتبع التعليمات والصورة المتحركة."],
+        imageUrl: gifUrl,
+        videoUrl: undefined,
+        duration: undefined,
+        reps: "8-12",
+        sets: 3,
+        caloriesBurned: 100,
+        targetGender: "both" as any,
+        category: "strength",
+        isActive: true,
+      });
+
+      existingNames.set(normalizedName, { name, imageUrl: gifUrl } as any);
+      inserted++;
+    }
+    
+    return inserted;
+  }
+});
+
+// Action: Fetch GIFs from the free open ExerciseDB V2 API - no key required!
+export const fetchExerciseDbGifs = action({
+  args: {},
+  handler: async (ctx) => {
+    // Try the open ExerciseDB V2 API first (no key required, full dataset with gifUrl)
+    let exercises: any[] = [];
+
+    const urls = [
+      'https://v2.exercisedb.dev/exercises?limit=1300',
+      'https://exercisedb-api.vercel.app/api/v1/exercises?limit=1300',
+    ];
+
+    for (const url of urls) {
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) continue;
+        const data = await resp.json();
+        const items = Array.isArray(data) ? data : (data.data || data.exercises || []);
+        if (items.length > 0) {
+          exercises = items;
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    if (exercises.length === 0) {
+      throw new Error("All API sources failed. Please try again later.");
+    }
+
+    const insertedOrUpdated = (await ctx.runMutation(internal.exercises.applyGifs, { items: exercises })) as number;
+
+    return { success: true, insertedOrUpdated, totalFetched: exercises.length };
+  }
+});
+
+// Keep old action for backward compatibility (now uses open API)
+export const fetchRapidApiGifs = action({
+  args: {
+    apiKey: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const resp = await fetch('https://exercisedb.p.rapidapi.com/exercises?limit=1500', {
+      headers: {
+        'x-rapidapi-key': args.apiKey,
+        'x-rapidapi-host': 'exercisedb.p.rapidapi.com'
+      }
+    });
+    
+    if (!resp.ok) {
+      throw new Error(`API failed: ${resp.status} ${resp.statusText}`);
+    }
+    
+    const data = await resp.json();
+    const isArray = Array.isArray(data);
+    const items = isArray ? data : (data.data || []);
+    
+    const insertedOrUpdated = (await ctx.runMutation(internal.exercises.applyGifs, { items })) as number;
+    
+    return { success: true, insertedOrUpdated, totalFetched: items.length };
+  }
 });

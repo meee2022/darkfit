@@ -50,6 +50,7 @@ const applicationTables = {
     membershipType: v.optional(v.string()), // e.g., "عضو سوبر", "عضو عادي"
     memberSince: v.optional(v.string()), // e.g., "2023"
     connectedDevices: v.optional(v.array(v.string())),
+    onboardingCompleted: v.optional(v.boolean()),
   }).index("by_user", ["userId"]),
 
   exercises: defineTable({
@@ -165,6 +166,7 @@ const applicationTables = {
     isSeniorFriendly: v.optional(v.boolean()),
     isChildFriendly: v.optional(v.boolean()),
     barcode: v.optional(v.string()),
+    mealTime: v.optional(v.array(v.string())),
   })
     .index("by_barcode", ["barcode"])
     .index("by_category", ["category"])

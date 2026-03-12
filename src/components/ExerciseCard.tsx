@@ -52,13 +52,13 @@ function toYouTubeId(url?: string) {
 export function ExerciseCard({ exercise }: ExerciseCardProps) {
   const { language, t } = useLanguage();
 
-  const title = language === "ar" ? exercise.nameAr : exercise.name;
+  const title = language === "ar" ? (exercise.nameAr || exercise.name) : exercise.name;
   const desc =
-    language === "ar" ? exercise.descriptionAr : exercise.description;
+    language === "ar" ? (exercise.descriptionAr || exercise.description) : exercise.description;
   const muscle =
-    language === "ar" ? exercise.muscleGroupAr : exercise.muscleGroup;
+    language === "ar" ? (exercise.muscleGroupAr || exercise.muscleGroup) : exercise.muscleGroup;
   const steps =
-    language === "ar" ? exercise.instructionsAr : exercise.instructions;
+    language === "ar" ? (exercise.instructionsAr?.length ? exercise.instructionsAr : exercise.instructions) : exercise.instructions;
 
   const [showDetails, setShowDetails] = useState(false);
   const [isLogging, setIsLogging] = useState(false);

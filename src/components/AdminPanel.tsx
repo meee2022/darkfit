@@ -378,6 +378,10 @@ function ExercisesAdmin() {
   const translateExercises = useAction(api.translateExercises.translateAllExercises);
   const resetUntranslatedNames = useAction(api.translateExercises.resetUntranslatedNames);
   const seedExercisesMutation = useMutation(api.sampleData.seedExercises);
+  const seed11 = useMutation(api.seed11.seed11Exercises);
+  const seed12 = useMutation(api.seed12.seed12Exercises);
+  const fixImagesMutation = useMutation((api as any).fixImages?.fixExerciseImages);
+  const fetchGifsAction = useAction(api.exercises.fetchExerciseDbGifs);
 
   const runExercisesSeed = async () => {
     try {
@@ -387,6 +391,60 @@ function ExercisesAdmin() {
       );
     } catch (e: any) {
       toast.error(e?.message || "فشل زرع التمارين");
+    }
+  };
+
+  const [seedingNew, setSeedingNew] = useState(false);
+  const runSeedNewExercises = async () => {
+    if (seedingNew) return;
+    setSeedingNew(true);
+    console.log("🌱 Starting seed11 + seed12...");
+    try {
+      const r1: any = await seed11({});
+      console.log("seed11 result:", r1);
+      const r2: any = await seed12({});
+      console.log("seed12 result:", r2);
+      toast.success(`✅ ${r1} | ${r2}`);
+      alert(`✅ تم!\n${r1}\n${r2}`);
+    } catch (e: any) {
+      console.error("Seed error:", e);
+      toast.error(e?.message || "فشل زرع التمارين الجديدة");
+      alert(`❌ خطأ: ${e?.message || "فشل زرع التمارين"}`);
+    } finally {
+      setSeedingNew(false);
+    }
+  };
+
+  const [fixingImages, setFixingImages] = useState(false);
+  const runFixImages = async () => {
+    if (fixingImages || !fixImagesMutation) return;
+    setFixingImages(true);
+    try {
+      const r: any = await fixImagesMutation({});
+      toast.success(r);
+      alert(r);
+    } catch (e: any) {
+      toast.error(e?.message || "فشل إصلاح الصور");
+      alert(`❌ خطأ: ${e?.message}`);
+    } finally {
+      setFixingImages(false);
+    }
+  };
+
+  const [fetchingGifs, setFetchingGifs] = useState(false);
+  const runFetchGifs = async () => {
+    if (fetchingGifs) return;
+    setFetchingGifs(true);
+    try {
+      const r: any = await fetchGifsAction({});
+      const msg = `✅ تم تحديث ${r.updated} تمرين من أصل ${r.total} بصور GIF متحركة`;
+      toast.success(msg);
+      alert(msg);
+    } catch (e: any) {
+      toast.error(e?.message || "فشل تحديث GIFs");
+      alert(`❌ خطأ: ${e?.message}`);
+    } finally {
+      setFetchingGifs(false);
     }
   };
 
@@ -955,6 +1013,33 @@ function ExercisesAdmin() {
             className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm"
           >
             استيراد تمارين افتراضية
+          </button>
+
+          <button
+            type="button"
+            disabled={seedingNew}
+            onClick={runSeedNewExercises}
+            className={`px-4 py-2 rounded-xl text-white text-sm font-bold ${seedingNew ? "bg-emerald-800 cursor-wait" : "bg-emerald-600 hover:bg-emerald-500"}`}
+          >
+            {seedingNew ? "⏳ جاري الزرع..." : "🌱 زرع تمارين جديدة (20 تمرين)"}
+          </button>
+
+          <button
+            type="button"
+            disabled={fixingImages}
+            onClick={runFixImages}
+            className={`px-4 py-2 rounded-xl text-white text-sm font-bold ${fixingImages ? "bg-purple-800 cursor-wait" : "bg-purple-600 hover:bg-purple-500"}`}
+          >
+            {fixingImages ? "⏳ جاري إصلاح الصور..." : "🛠️ إصلاح صور التمارين"}
+          </button>
+
+          <button
+            type="button"
+            disabled={fetchingGifs}
+            onClick={runFetchGifs}
+            className={`px-4 py-2 rounded-xl text-white text-sm font-bold ${fetchingGifs ? "bg-pink-800 cursor-wait" : "bg-pink-600 hover:bg-pink-500"}`}
+          >
+            {fetchingGifs ? "⏳ جاري تحديث GIFs..." : "🎥 تحديث صور GIFs"}
           </button>
 
           <button

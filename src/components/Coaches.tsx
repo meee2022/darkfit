@@ -105,21 +105,21 @@ function CoachCard({
         </div>
 
         {/* Stats */}
-        <div className="flex items-center gap-4 text-xs text-gray-300">
+        <div className="flex items-center gap-4 text-xs text-gray-300" dir={isAr ? "rtl" : "ltr"}>
           <div className="flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-[#59f20d]" />
-            <span>{yearsExp}+ سنوات خبرة</span>
+            <span>{yearsExp}+ {isAr ? "سنوات خبرة" : "Years Exp"}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Users className="w-4 h-4 text-[#59f20d]" />
-            <span>{studentsCount}+ متدرب</span>
+            <span>{studentsCount}+ {isAr ? "متدرب" : "Students"}</span>
           </div>
         </div>
 
         {/* CTA Button */}
-        <button className="w-full flex items-center justify-center gap-2 px-5 py-4 bg-[#59f20d] text-black font-bold rounded-2xl hover:bg-[#4ed10a] transition-all shadow-[0_0_30px_rgba(89,242,13,0.4)] group-hover:shadow-[0_0_40px_rgba(89,242,13,0.6)]">
+        <button className="w-full flex items-center justify-center gap-2 px-5 py-4 bg-[#59f20d] text-black font-bold rounded-2xl hover:bg-[#4ed10a] transition-all shadow-[0_0_30px_rgba(89,242,13,0.4)] group-hover:shadow-[0_0_40px_rgba(89,242,13,0.6)]" dir={isAr ? "rtl" : "ltr"}>
           <Calendar className="w-5 h-5" />
-          <span>احجز جلستك الآن</span>
+          <span>{isAr ? "احجز جلستك الآن" : "Book Session Now"}</span>
         </button>
       </div>
 
@@ -223,18 +223,18 @@ export function Coaches() {
           </div>
 
           {/* Category Filters */}
-          <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide" dir={isAr ? "rtl" : "ltr"}>
             <button className="px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap bg-[#59f20d] text-black shadow-[0_0_20px_rgba(89,242,13,0.4)]">
-              الكل
+              {isAr ? "الكل" : "All"}
             </button>
             <button className="px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap bg-zinc-900 text-gray-300 border border-zinc-800/60 hover:border-[#59f20d]/50">
-              بناء العضلات
+              {isAr ? "بناء العضلات" : "Muscle Building"}
             </button>
             <button className="px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap bg-zinc-900 text-gray-300 border border-zinc-800/60 hover:border-[#59f20d]/50">
-              خسارة الوزن
+              {isAr ? "خسارة الوزن" : "Weight Loss"}
             </button>
             <button className="px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap bg-zinc-900 text-gray-300 border border-zinc-800/60 hover:border-[#59f20d]/50">
-              تغذية وتخسيس
+              {isAr ? "تغذية وتخسيس" : "Nutrition & Diet"}
             </button>
           </div>
         </div>
@@ -242,13 +242,13 @@ export function Coaches() {
 
       {/* Coaches Section */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" dir={isAr ? "rtl" : "ltr"}>
           <h2 className="text-xl font-black text-white">
             {isAr ? "المدربون المتميزون" : "Featured Coaches"}
           </h2>
           <button className="text-sm text-[#59f20d] font-bold hover:underline flex items-center gap-1">
             {isAr ? "عرض الكل" : "View All"}
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className={`w-4 h-4 ${isAr ? "" : "rotate-180"}`} />
           </button>
         </div>
 
@@ -327,7 +327,7 @@ export function Coaches() {
               {/* Verified Badge */}
               <div className="absolute top-4 right-1/2 translate-x-1/2 px-4 py-2 rounded-2xl bg-[#59f20d] text-black font-bold flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm">مدرب معتمد</span>
+                <span className="text-sm">{isAr ? "مدرب معتمد" : "Verified Coach"}</span>
               </div>
 
               {/* Coach Info Overlay */}
@@ -344,72 +344,71 @@ export function Coaches() {
             {/* Content Section */}
             <div className="overflow-y-auto max-h-[calc(90vh-320px)] p-6 space-y-6">
               {/* Stats Cards */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-3" dir={isAr ? "rtl" : "ltr"}>
                 <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 text-center">
                   <Star className="w-6 h-6 text-[#59f20d] mx-auto mb-2 fill-current" />
                   <p className="text-2xl font-black text-white">
                     {(selected.rating || 4.5).toFixed(1)}
                   </p>
-                  <p className="text-xs text-gray-400">التقييم</p>
+                  <p className="text-xs text-gray-400">{isAr ? "التقييم" : "Rating"}</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 text-center">
                   <Clock className="w-6 h-6 text-[#59f20d] mx-auto mb-2" />
-                  <p className="text-2xl font-black text-white">
+                  <p className="text-2xl font-black text-white" dir="ltr">
                     {selected.yearsOfExperience || Math.floor(Math.random() * 10) + 3}+
                   </p>
-                  <p className="text-xs text-gray-400">سنوات خبرة</p>
+                  <p className="text-xs text-gray-400">{isAr ? "سنوات خبرة" : "Years Exp"}</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 text-center">
                   <Users className="w-6 h-6 text-[#59f20d] mx-auto mb-2" />
-                  <p className="text-2xl font-black text-white">
+                  <p className="text-2xl font-black text-white" dir="ltr">
                     {selected.studentsCount || Math.floor(Math.random() * 500) + 100}+
                   </p>
-                  <p className="text-xs text-gray-400">متدرب</p>
+                  <p className="text-xs text-gray-400">{isAr ? "متدرب" : "Students"}</p>
                 </div>
               </div>
 
               {/* About Section */}
-              <div className="space-y-3">
+              <div className="space-y-3" dir={isAr ? "rtl" : "ltr"}>
                 <h3 className="text-lg font-black text-white flex items-center gap-2">
                   <div className="w-1 h-6 bg-[#59f20d] rounded-full" />
-                  نبذة عن المدرب
+                  {isAr ? "نبذة عن المدرب" : "About the Coach"}
                 </h3>
-                <p className="text-sm text-gray-300 leading-relaxed text-right">
-                  {displayBio(selected) ||
-                    "متخصص في تحويل الجسم وبناء القوة البدنية. أؤمن بأن الرياضة ليست مجرد تمرين، بل هي نمط حياة متكامل. حصلت على العديد من الشهادات الدولية في الكروس فيت وكمال الأجسام، وساعدت المئات في الوصول لأهدافهم الصحية والبدنية من خلال خطط تدريبية مبتكرة."}
+                <p className={`text-sm text-gray-300 leading-relaxed ${isAr ? "text-right" : "text-left"}`}>
+                  {displayBio(selected) || (isAr ? "متخصص في تحويل الجسم وبناء القوة البدنية. أؤمن بأن الرياضة ليست مجرد تمرين، بل هي نمط حياة متكامل. حصلت على العديد من الشهادات الدولية في الكروس فيت وكمال الأجسام، وساعدت المئات في الوصول لأهدافهم الصحية والبدنية من خلال خطط تدريبية مبتكرة." : "Specializing in body transformation and building physical strength. I believe that sports are not just exercises, but an integrated lifestyle. I have obtained several international certifications in CrossFit and bodybuilding, helping hundreds achieve their health and fitness goals through innovative training plans.")}
                 </p>
               </div>
 
               {/* Specialties */}
-              <div className="space-y-3">
+              <div className="space-y-3" dir={isAr ? "rtl" : "ltr"}>
                 <h3 className="text-lg font-black text-white flex items-center gap-2">
                   <div className="w-1 h-6 bg-[#59f20d] rounded-full" />
-                  لمن هذا المدرب؟
+                  {isAr ? "لمن هذا المدرب؟" : "Who is this coach for?"}
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   <span className="px-4 py-2 rounded-2xl bg-[#59f20d]/10 border border-[#59f20d]/30 text-[#59f20d] text-sm font-bold">
-                    المبتدئين
+                    {isAr ? "المبتدئين" : "Beginners"}
                   </span>
                   <span className="px-4 py-2 rounded-2xl bg-[#59f20d]/10 border border-[#59f20d]/30 text-[#59f20d] text-sm font-bold">
-                    خسارة الوزن
+                    {isAr ? "خسارة الوزن" : "Weight Loss"}
                   </span>
                   <span className="px-4 py-2 rounded-2xl bg-[#59f20d]/10 border border-[#59f20d]/30 text-[#59f20d] text-sm font-bold">
-                    الرياضيين المحترفين
+                    {isAr ? "الرياضيين المحترفين" : "Pro Athletes"}
                   </span>
                   <span className="px-4 py-2 rounded-2xl bg-[#59f20d]/10 border border-[#59f20d]/30 text-[#59f20d] text-sm font-bold">
-                    بناء العضلات
+                    {isAr ? "بناء العضلات" : "Muscle Building"}
                   </span>
                   <span className="px-4 py-2 rounded-2xl bg-[#59f20d]/10 border border-[#59f20d]/30 text-[#59f20d] text-sm font-bold">
-                    تحسين اللياقة
+                    {isAr ? "تحسين اللياقة" : "Fitness Improvement"}
                   </span>
                 </div>
               </div>
 
               {/* Training Programs */}
-              <div className="space-y-3">
+              <div className="space-y-3" dir={isAr ? "rtl" : "ltr"}>
                 <h3 className="text-lg font-black text-white flex items-center gap-2">
                   <div className="w-1 h-6 bg-[#59f20d] rounded-full" />
-                  البرامج التدريبية
+                  {isAr ? "البرامج التدريبية" : "Training Programs"}
                 </h3>
                 <div className="space-y-3">
                   <div className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/60">
@@ -418,13 +417,13 @@ export function Coaches() {
                       alt="Program"
                       className="w-20 h-20 rounded-xl object-cover"
                     />
-                    <div className="flex-1 text-right">
+                    <div className={`flex-1 ${isAr ? "text-right" : "text-left"}`}>
                       <h4 className="text-sm font-bold text-white mb-1">
-                        تحدي القوة الشامل
+                        {isAr ? "تحدي القوة الشامل" : "Complete Strength Challenge"}
                       </h4>
-                      <p className="text-xs text-gray-400">12 أسبوع • بناء عضلات</p>
+                      <p className="text-xs text-gray-400" dir="ltr">{isAr ? "12 أسبوع • بناء عضلات" : "12 Weeks • Muscle Building"}</p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-[#59f20d]" />
+                    <ChevronRight className={`w-5 h-5 text-[#59f20d] ${isAr ? "" : "rotate-180"}`} />
                   </div>
 
                   <div className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/60">
@@ -433,29 +432,29 @@ export function Coaches() {
                       alt="Program"
                       className="w-20 h-20 rounded-xl object-cover"
                     />
-                    <div className="flex-1 text-right">
+                    <div className={`flex-1 ${isAr ? "text-right" : "text-left"}`}>
                       <h4 className="text-sm font-bold text-white mb-1">
-                        الجدول الحديدي للمبتدئين
+                        {isAr ? "الجدول الحديدي للمبتدئين" : "Iron Plan for Beginners"}
                       </h4>
-                      <p className="text-xs text-gray-400">8 أسابيع • بناء روتين</p>
+                      <p className="text-xs text-gray-400" dir="ltr">{isAr ? "8 أسابيع • بناء روتين" : "8 Weeks • Routine Building"}</p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-[#59f20d]" />
+                    <ChevronRight className={`w-5 h-5 text-[#59f20d] ${isAr ? "" : "rotate-180"}`} />
                   </div>
                 </div>
 
                 <button className="w-full text-sm text-[#59f20d] font-bold hover:underline text-center py-2">
-                  عرض الكل
+                  {isAr ? "عرض الكل" : "View All"}
                 </button>
               </div>
 
               {/* CTA Buttons */}
-              <div className="space-y-3 pt-4">
+              <div className="space-y-3 pt-4" dir={isAr ? "rtl" : "ltr"}>
                 <button
                   onClick={() => openWhatsApp(selected.whatsapp)}
                   className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-[#59f20d] text-black font-bold rounded-2xl hover:bg-[#4ed10a] transition-all shadow-[0_0_30px_rgba(89,242,13,0.4)]"
                 >
                   <Calendar className="w-5 h-5" />
-                  <span>احجز جلستك الآن</span>
+                  <span>{isAr ? "احجز جلستك الآن" : "Book Session Now"}</span>
                 </button>
 
                 <button
@@ -463,7 +462,7 @@ export function Coaches() {
                   className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-zinc-900/40 text-white font-bold rounded-2xl border border-zinc-800/60 hover:border-[#59f20d]/50 transition-all"
                 >
                   <MessageCircle className="w-5 h-5" />
-                  <span>تواصل عبر واتساب</span>
+                  <span>{isAr ? "تواصل عبر واتساب" : "Contact via WhatsApp"}</span>
                 </button>
               </div>
             </div>

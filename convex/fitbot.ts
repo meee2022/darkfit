@@ -1,4 +1,5 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, action, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v, ConvexError } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
@@ -86,11 +87,19 @@ async function getDailyQuestionCount(ctx: any, userId: any): Promise<number> {
 /* =========================
    إرسال رسالة
 ========================= */
-export const sendMessage = mutation({
-  args: {
-    message: v.string(),
-  },
-  handler: async (ctx, args) => {
+/* =========================
+   تجهيز الشات (تفحص الحظر وتجلب البيانات)
+========================= */
+export const prepChat = internalMutation({
+  args: { message: v.string() },
+  handler: async (ctx, args): Promise<{
+    status: "blocked" | "ok";
+    response?: string;
+    isBlocked?: boolean;
+    remainingQuestions: number;
+    userId?: string;
+    userContext?: string;
+  }> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("يجب تسجيل الدخول أولاً");
 
@@ -100,7 +109,7 @@ export const sendMessage = mutation({
 
     // التحقق من الحد اليومي
     const dailyCount = await getDailyQuestionCount(ctx, userId);
-    const DAILY_LIMIT = 5; // يمكن تغييره حسب الخطة
+    const DAILY_LIMIT = 5; 
     
     if (dailyCount >= DAILY_LIMIT) {
       throw new ConvexError(
@@ -138,6 +147,7 @@ export const sendMessage = mutation({
       });
 
       return { 
+        status: "blocked",
         response: blockedResponse, 
         isBlocked: true,
         remainingQuestions: DAILY_LIMIT - dailyCount - 1
@@ -161,32 +171,87 @@ export const sendMessage = mutation({
       `.trim();
     }
 
-    // استدعاء Gemini API
+    return {
+      status: "ok",
+      userId,
+      userContext,
+      remainingQuestions: DAILY_LIMIT - dailyCount - 1
+    };
+  }
+});
+
+/* =========================
+   حفظ رد الذكاء الاصطناعي
+========================= */
+export const saveAIResponse = internalMutation({
+  args: {
+    userId: v.id("users"),
+    message: v.string(),
+    response: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("fitbotChats", {
+      userId: args.userId,
+      message: args.message,
+      response: args.response,
+      isBlocked: false,
+      timestamp: Date.now(),
+    });
+  }
+});
+
+/* =========================
+   إرسال رسالة (Action)
+========================= */
+export const sendMessage = action({
+  args: {
+    message: v.string(),
+  },
+  handler: async (ctx, args): Promise<{
+    response: string;
+    isBlocked: boolean;
+    remainingQuestions: number;
+  }> => {
+    // 1. Prepare chat via mutation
+    const prepResult = await ctx.runMutation(internal.fitbot.prepChat, {
+      message: args.message
+    });
+
+    if (prepResult.status === "blocked") {
+      return {
+        response: prepResult.response ?? "",
+        isBlocked: prepResult.isBlocked ?? true,
+        remainingQuestions: prepResult.remainingQuestions
+      };
+    }
+
+    // 2. call Groq API via fetch
     try {
-      const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-      if (!GEMINI_API_KEY) throw new Error("Gemini API Key غير موجود");
+      const GROQ_API_KEY = process.env.GROQ_API_KEY;
+      if (!GROQ_API_KEY) throw new Error("Groq API Key غير موجود");
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        `https://api.groq.com/openai/v1/chat/completions`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${GROQ_API_KEY}`
+          },
           body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `${SYSTEM_PROMPT}\n\n${userContext ? userContext + '\n\n' : ''}السؤال: ${message}`
-              }]
-            }],
-            generationConfig: {
-              maxOutputTokens: 400,
-              temperature: 0.7,
-            },
-            safetySettings: [
+            model: "llama-3.1-8b-instant",
+            messages: [
               {
-                category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                role: "system",
+                content: `${SYSTEM_PROMPT}\n\n${prepResult.userContext ? prepResult.userContext : ''}`
+              },
+              {
+                role: "user",
+                content: args.message
               }
-            ]
+            ],
+            max_tokens: 400,
+            temperature: 0.7,
           })
         }
       );
@@ -198,25 +263,25 @@ export const sendMessage = mutation({
 
       const data = await response.json();
       
-      if (!data.candidates || data.candidates.length === 0) {
+      if (!data.choices || data.choices.length === 0) {
         throw new Error("لم أتمكن من إنشاء إجابة. حاول إعادة صياغة السؤال.");
       }
 
-      const aiResponse = data.candidates[0].content.parts[0].text;
+      const aiResponse = data.choices[0].message.content;
 
-      // حفظ في قاعدة البيانات
-      await ctx.db.insert("fitbotChats", {
-        userId,
-        message,
-        response: aiResponse,
-        isBlocked: false,
-        timestamp: Date.now(),
-      });
+      // 3. Save to DB
+      if (prepResult.userId) {
+        await ctx.runMutation(internal.fitbot.saveAIResponse, {
+          userId: prepResult.userId as any,
+          message: args.message,
+          response: aiResponse,
+        });
+      }
 
       return { 
         response: aiResponse, 
         isBlocked: false,
-        remainingQuestions: DAILY_LIMIT - dailyCount - 1
+        remainingQuestions: prepResult.remainingQuestions
       };
       
     } catch (error: any) {

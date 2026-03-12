@@ -1,4 +1,4 @@
-import { Authenticated, Unauthenticated, useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,7 @@ import { Supplements } from "./components/Supplements";
 import { HealthSection } from "./components/HealthSection";
 import { AccountSettings } from "./components/AccountSettings";
 import { ProfileSection } from "./components/ProfileSection";
+import { WorkoutGenerator } from "./components/WorkoutGenerator";
 
 import { CoachWorkoutPlanForm } from "./components/CoachWorkoutPlanForm";
 import { MyPlans } from "./components/MyPlans";
@@ -36,6 +37,7 @@ import { WorkoutTimer } from "./components/WorkoutTimer";
 /* ============ Splash Screen ============ */
 
 function SplashScreen() {
+  const { language } = useLanguage();
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black overflow-hidden pt-6">
       {/* هالة نيون خضراء أهدى */}
@@ -95,8 +97,7 @@ function SplashScreen() {
             DARKFIT
           </h2>
           <p className="text-xs font-medium tracking-[0.3em] text-zinc-400 uppercase">
-            {/* Split tagline for individual letter animation if needed, or just fade */}
-            لياقة • تغذية • صحة
+            {language === "ar" ? "لياقة • تغذية • صحة" : "Fitness • Nutrition • Health"}
           </p>
         </motion.div>
       </div>
@@ -137,145 +138,205 @@ export default function App() {
 
   const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
   const [showProfilePrompt, setShowProfilePrompt] = useState(false);
+  const [showSignInModal, setShowSignInModal] = useState(false);
 
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const userProfile = useQuery(api.profiles.getCurrentProfile);
   const isAdmin = useQuery(api.profiles.checkAdminStatus);
 
-  const needsProfile = userProfile === null;
+  const isProfileLoading = isAuthenticated && userProfile === undefined;
+  const needsProfile = isAuthenticated && userProfile === null;
+
+  const publicSections: SectionId[] = ["dashboard", "exercises", "coaches", "calculator", "workoutGenerator"];
+  const isProtectedSection = !publicSections.includes(activeSection);
 
   // لو الـ Splash لسه ظاهر، رجّعه لوحده
   if (showSplash) {
     return <SplashScreen />;
   }
 
+  const path = typeof window !== "undefined" ? window.location.pathname : "/";
+  const isReset = path === "/reset" || path === "/reset/";
+
+  if (isReset && !isAuthenticated) {
+    return <UnauthGate subtitle={tr("sign_in_sub", "رحلتك نحو اللياقة تبدأ هنا")} />;
+  }
+
   return (
-    <div className="min-h-screen bg-herb-50 text-zinc-900 dark:bg-[#1a2318] dark:text-zinc-50 font-sans">
+    <div className="relative min-h-screen bg-[#0c0c0c] text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-300">
       <div className="bg-app-gradient fixed inset-0 -z-10 opacity-80" />
 
       <Header
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         isAdmin={!!isAdmin}
+        onSignInClick={() => setShowSignInModal(true)}
       />
 
       <main className="flex-1">
-        <Authenticated>
-          <NotificationManager />
-          <WorkoutTimer />
-
-          {userProfile === undefined ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-10 w-10 rounded-full border-4 border-herb-300 border-t-neon-400 animate-spin" />
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  {language === "ar"
-                    ? "جارِ تحميل حسابك الشخصي..."
-                    : "Loading your profile..."}
-                </p>
-              </div>
+        {(authLoading || isProfileLoading) ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-10 w-10 rounded-full border-4 border-herb-300 border-t-neon-400 animate-spin" />
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                {tr("loading", "جارِ التحميل...")}
+              </p>
             </div>
-          ) : (
-            <>
-              <TopNav
-                activeSection={activeSection}
-                setActiveSection={setActiveSection}
-              />
+          </div>
+        ) : (
+          <>
+            {isAuthenticated && <NotificationManager />}
+            {isAuthenticated && <WorkoutTimer />}
+            <TopNav
+              activeSection={activeSection}
+              setActiveSection={(id) => {
+                setShowSignInModal(false);
+                setActiveSection(id);
+              }}
+              isAdmin={!!isAdmin}
+            />
 
-              <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 pb-24 md:pb-8">
-                <div className="bg-white/90 dark:bg-[#1a2318]/70 backdrop-blur rounded-3xl shadow-soft border border-herb-100 dark:border-[#59f20d]/10 p-4 sm:p-6 md:p-8">
-                  {/* Banner لو مافيش profile */}
-                  {needsProfile && !showProfilePrompt && (
-                    <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xl">✨</span>
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-sm text-emerald-900 dark:text-emerald-100">
-                            {language === "ar"
-                              ? "استمتع بالتصفح! 🎯"
-                              : "Enjoy browsing! 🎯"}
-                          </h3>
-                          <p className="text-xs text-emerald-700 dark:text-[#59f20d]">
-                            {language === "ar"
-                              ? "لتسجيل تمارينك وحساب سعراتك، أكمل ملفك الشخصي"
-                              : "To track workouts & calculate calories, complete your profile"}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setShowProfilePrompt(true)}
-                        className="px-4 py-2 rounded-full bg-[#59f20d] text-zinc-950 font-bold text-sm hover:brightness-95 transition whitespace-nowrap"
-                      >
-                        {language === "ar"
-                          ? "إكمال الملف"
-                          : "Complete Profile"}
-                      </button>
-                    </div>
-                  )}
-
-                  {showProfilePrompt ? (
-                    <div>
-                      <button
-                        onClick={() => setShowProfilePrompt(false)}
-                        className="mb-4 text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-2"
-                      >
-                        <span>←</span>
-                        {language === "ar"
-                          ? "العودة للتصفح"
-                          : "Back to browsing"}
-                      </button>
-                      <ProfileSetup />
-                    </div>
-                  ) : (
-                    <>
-                      {activeSection === "dashboard" && (
-                        <Dashboard onNavigate={(id) => setActiveSection(id)} />
-                      )}
-
-                      {activeSection === "exercises" && <ExerciseSection />}
-                      {activeSection === "nutrition" && <NutritionSection />}
-                      {activeSection === "supplements" && <Supplements />}
-                      {activeSection === "calculator" && <CalorieCalculator />}
-                      {activeSection === "coaches" && <Coaches />}
-                      {activeSection === "account" && <AccountSettings />}
-                      {activeSection === "health" && <HealthSection />}
-                      {activeSection === "fitbot" && <FitBot />}
-                      {activeSection === "profile" && <ProfileSection />}
-
-                      {activeSection === "plans" && <MyPlans />}
-
-                      {activeSection === "coachPlans" && isAdmin && (
-                        <CoachWorkoutPlanForm />
-                      )}
-
-                      {activeSection === "admin" && isAdmin && <AdminPanel />}
-
-                      {activeSection === "admin" && !isAdmin && (
-                        <p className="mt-4 text-sm text-red-500">
-                          {language === "ar"
-                            ? "لا تملك صلاحية الدخول إلى لوحة التحكم."
-                            : "You do not have permission to access the admin panel."}
-                        </p>
-                      )}
-                    </>
-                  )}
+            {/* Modal تسجيل الدخول */}
+            {showSignInModal && !isAuthenticated && (
+              <div
+                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+                onClick={() => setShowSignInModal(false)}
+              >
+                <div
+                  className="w-full max-w-md bg-white/95 dark:bg-zinc-900/90 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_0_60px_rgba(0,0,0,0.6)] border border-zinc-200 dark:border-zinc-800/50 overflow-hidden relative"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => setShowSignInModal(false)}
+                    className="absolute top-4 left-4 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-100 text-lg"
+                  >×</button>
+                  <div className="px-6 pt-10 pb-4 text-center">
+                    <h1 className="text-3xl font-black tracking-tighter text-[#59f20d] mb-1 uppercase italic">DARKFIT</h1>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{language === "ar" ? "رحلتك نحو اللياقة تبدأ هنا" : "Your fitness journey starts here"}</p>
+                  </div>
+                  <div className="px-6 pb-10">
+                    <SignInForm />
+                  </div>
                 </div>
               </div>
+            )}
 
-              <MobileBottomNav
-                activeSection={activeSection}
-                onChange={setActiveSection}
-              />
-            </>
-          )}
-        </Authenticated>
+            <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 pb-24 md:pb-8">
+              {/* بانر ترحيبي للزوار غير المسجلين */}
+              {!isAuthenticated && !showSignInModal && (
+                <div className="mb-4 flex items-center justify-between gap-3 p-3 rounded-2xl bg-[#59f20d]/10 border border-[#59f20d]/30 backdrop-blur-sm">
+                  <p className="text-sm font-semibold text-[#59f20d] truncate">
+                    {language === "ar"
+                      ? "يرجى تسجيل الدخول لرؤية جميع محتوى التطبيق 💪"
+                      : "Sign in to access all app features 💪"}
+                  </p>
+                  <button
+                    onClick={() => setShowSignInModal(true)}
+                    className="flex-shrink-0 px-4 py-1.5 rounded-full bg-[#59f20d] text-zinc-950 font-black text-xs hover:brightness-95 transition whitespace-nowrap"
+                  >
+                    {tr("sign_in", "تسجيل دخول")}
+                  </button>
+                </div>
+              )}
+              <div className="bg-[#111] dark:bg-[#111] backdrop-blur rounded-[2rem] shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-white/5 p-4 sm:p-6 md:p-8">
+                {isProtectedSection && !isAuthenticated ? (
+                  <div className="py-12 flex flex-col items-center text-center">
+                    <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+                      <span className="text-2xl">🔒</span>
+                    </div>
+                    <h2 className="text-2xl font-bold mb-3 dark:text-zinc-50">
+                      {language === "ar" ? "يرجى تسجيل الدخول" : "Please Sign In"}
+                    </h2>
+                    <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-sm">
+                      {language === "ar"
+                        ? "يجب تسجيل الدخول للوصول إلى هذه الميزة."
+                        : "You must log in to access this feature."}
+                    </p>
+                    <div className="w-full max-w-md bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-xl text-left">
+                      <SignInForm />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Banner لو مافيش profile */}
+                    {needsProfile && !showProfilePrompt && (
+                      <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xl">✨</span>
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-sm text-emerald-900 dark:text-emerald-100">
+                              {tr("enjoy_browsing", "استمتع بالتصفح! 🎯")}
+                            </h3>
+                            <p className="text-xs text-emerald-700 dark:text-[#59f20d]">
+                              {tr("complete_profile_desc", "لتسجيل تمارينك وحساب سعراتك، أكمل ملفك الشخصي")}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setShowProfilePrompt(true)}
+                          className="px-4 py-2 rounded-full bg-[#59f20d] text-zinc-950 font-bold text-sm hover:brightness-95 transition whitespace-nowrap"
+                        >
+                          {tr("complete_profile", "إكمال الملف")}
+                        </button>
+                      </div>
+                    )}
 
-        <Unauthenticated>
-          <UnauthGate
-            subtitle={tr("sign_in_sub", "رحلتك نحو اللياقة تبدأ هنا")}
-          />
-        </Unauthenticated>
+                    {showProfilePrompt ? (
+                      <div>
+                        <button
+                          onClick={() => setShowProfilePrompt(false)}
+                          className="mb-4 text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-2"
+                        >
+                          <span>←</span>
+                          {tr("back_to_browse", "العودة للتصفح")}
+                        </button>
+                        <ProfileSetup />
+                      </div>
+                    ) : (
+                      <>
+                        {activeSection === "dashboard" && (
+                          <Dashboard onNavigate={(id) => setActiveSection(id)} />
+                        )}
+
+                        {activeSection === "exercises" && <ExerciseSection />}
+                        {activeSection === "workoutGenerator" && <WorkoutGenerator />}
+                        {activeSection === "nutrition" && <NutritionSection />}
+                        {activeSection === "supplements" && <Supplements />}
+                        {activeSection === "calculator" && <CalorieCalculator />}
+                        {activeSection === "coaches" && <Coaches />}
+                        {activeSection === "account" && <AccountSettings />}
+                        {activeSection === "health" && <HealthSection />}
+                        {activeSection === "fitbot" && <FitBot onBack={() => setActiveSection("dashboard")} />}
+                        {activeSection === "profile" && <ProfileSection />}
+
+                        {activeSection === "plans" && <MyPlans />}
+
+                        {activeSection === "coachPlans" && isAdmin && (
+                          <CoachWorkoutPlanForm />
+                        )}
+
+                        {activeSection === "admin" && isAdmin && <AdminPanel />}
+
+                        {activeSection === "admin" && !isAdmin && (
+                          <p className="mt-4 text-sm text-red-500">
+                            {tr("no_admin_permission", "لا تملك صلاحية الدخول إلى لوحة التحكم.")}
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            <MobileBottomNav
+              activeSection={activeSection}
+              onChange={setActiveSection}
+            />
+          </>
+        )}
       </main>
     </div>
   );

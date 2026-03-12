@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { cn } from "../lib/utils";
 import { useLanguage } from "../lib/i18n";
@@ -23,6 +23,7 @@ export function CalorieCalculator() {
   const { t, language, dir } = useLanguage();
   const isAr = language === "ar";
 
+  const { isAuthenticated } = useConvexAuth();
   const userProfile = useQuery(api.profiles.getCurrentProfile);
   const updateProfile = useMutation(api.profiles.updateProfile);
 
@@ -110,6 +111,10 @@ export function CalorieCalculator() {
   }, [targetCalories]);
 
   const handleApplyToProfile = async () => {
+    if (!isAuthenticated || !userProfile) {
+      toast.error(isAr ? "يرجى تسجيل الدخول وحفظ ملفك الشخصي أولاً" : "Please sign in and complete profile first");
+      return;
+    }
     if (!targetCalories || targetCalories <= 0) return;
 
     setIsSaving(true);
@@ -130,7 +135,7 @@ export function CalorieCalculator() {
     g === "cut" ? (isAr ? "تنشيف" : "Cut") : g === "bulk" ? (isAr ? "تضخيم" : "Bulk") : isAr ? "ثبات" : "Maintenance";
 
   return (
-    <div dir={dir} className="min-h-screen bg-[#0a0d08] text-white py-6 px-4 space-y-6">
+    <div dir={dir} className="min-h-screen bg-[#0c0c0c] text-white py-6 px-4 space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -142,14 +147,36 @@ export function CalorieCalculator() {
         </h1>
       </motion.div>
 
+      {/* Banner */}
+      {!isAuthenticated || (isAuthenticated && !userProfile) ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative overflow-hidden rounded-[2.5rem] border border-amber-500/20 bg-amber-500/5 backdrop-blur-2xl p-6 flex flex-col items-center text-center gap-3 w-full"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(245,158,11,0.05),transparent_60%)]" />
+          <User className="w-10 h-10 text-amber-500" />
+          <div>
+            <h3 className="text-xl font-black text-amber-500 mb-2">
+              {isAr ? "يرجى إكمال الملف الشخصي" : "Please complete your profile"}
+            </h3>
+            <p className="text-xs text-amber-500/80 max-w-sm mx-auto">
+              {isAr
+                ? "يرجى تسجيل الدخول وإكمال الملف الشخصي للحصول على أدق التفاصيل واقتراحات السعرات."
+                : "Please sign in and complete your profile to get the most accurate details and calorie suggestions."}
+            </p>
+          </div>
+        </motion.div>
+      ) : null}
+
       {/* User Profile Data Display */}
       {userProfile && userProfile.weight && userProfile.height && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="relative overflow-hidden rounded-[2.5rem] border border-[#59f20d]/20 bg-[#1a2318]/40 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-6"
+          className="relative overflow-hidden rounded-[2.5rem] border border-white/5 bg-[#1a1a1a] backdrop-blur-2xl shadow-2xl p-6"
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(89,242,13,0.1),transparent_60%)]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#59f20d]/5 to-transparent pointer-events-none" />
 
           <div className="relative">
             {/* Header */}
@@ -199,7 +226,7 @@ export function CalorieCalculator() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className={cn("backdrop-blur-md rounded-3xl p-4 border border-[#2a3528] hover:border-[#59f20d]/30 transition-all group", stat.bg)}
+                  className={cn("backdrop-blur-md rounded-3xl p-4 border border-white/5 hover:border-[#59f20d]/30 transition-all group bg-white/2")}
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110", stat.bg)}>
@@ -228,7 +255,7 @@ export function CalorieCalculator() {
                     activityLevel: "moderate",
                   })
                 }
-                className="group relative px-8 py-3.5 rounded-2xl bg-[#59f20d] hover:bg-[#4ed10a] text-[#0a0d08] font-black text-sm transition-all shadow-[0_10px_40px_rgba(89,242,13,0.3)] hover:scale-105 active:scale-95 flex items-center gap-3 overflow-hidden"
+                className="group relative px-8 py-3.5 rounded-2xl bg-[#59f20d] hover:bg-[#4ed10a] text-black font-black text-sm transition-all shadow-xl hover:scale-105 active:scale-95 flex items-center gap-3 overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                 <Activity className="w-5 h-5 animate-pulse" />
@@ -257,22 +284,21 @@ export function CalorieCalculator() {
               fill="none"
               strokeLinecap="round"
               strokeDasharray={`${2 * Math.PI * 140}`}
-              className="drop-shadow-[0_0_20px_rgba(89,242,13,0.6)]"
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center animate-fadeIn">
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">
+            <div className="text-xs font-bold text-white/30 uppercase tracking-[0.2em] mb-2">
               {isAr ? "السعرات المستهدفة" : "Target Calories"}
             </div>
             <motion.div
               key={targetCalories}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="text-7xl font-black tabular-nums tracking-tighter"
+              className="text-7xl font-black tabular-nums tracking-tighter text-white"
             >
               {targetCalories || "0"}
             </motion.div>
-            <div className="text-sm text-[#59f20d] font-bold mt-2 uppercase tracking-widest">
+            <div className="text-sm text-[#59f20d]/80 font-bold mt-2 uppercase tracking-widest">
               {isAr ? "سعرة حرارية" : "kcal"}
             </div>
 
@@ -302,8 +328,8 @@ export function CalorieCalculator() {
 
       {/* Goal Selection */}
       <div className="space-y-4">
-        <h3 className="text-[10px] font-black text-gray-500 text-center uppercase tracking-[0.3em]">{isAr ? "هدفك" : "Your Goal"}</h3>
-        <div className="flex gap-3 bg-[#111] dark:bg-zinc-900/50 backdrop-blur-xl rounded-[2rem] p-2 border border-white/5 shadow-2xl">
+        <h3 className="text-[10px] font-black text-white/30 text-center uppercase tracking-[0.3em]">{isAr ? "هدفك" : "Your Goal"}</h3>
+        <div className="flex gap-3 bg-[#1a1a1a] backdrop-blur-xl rounded-[2rem] p-2 border border-white/5 shadow-2xl">
           {(["cut", "maintenance", "bulk"] as Goal[]).map((g) => (
             <button
               key={g}
@@ -311,8 +337,8 @@ export function CalorieCalculator() {
               className={cn(
                 "flex-1 py-4 rounded-[1.5rem] font-black text-xs transition-all duration-300 relative overflow-hidden",
                 goal === g
-                  ? "bg-[#59f20d] text-black shadow-[0_10px_25px_rgba(89,242,13,0.3)] scale-[1.02]"
-                  : "bg-transparent text-gray-500 hover:text-white"
+                  ? "bg-[#59f20d] text-black shadow-lg scale-[1.02]"
+                  : "bg-transparent text-white/40 hover:text-white"
               )}
             >
               {goalLabel(g)}
@@ -330,9 +356,9 @@ export function CalorieCalculator() {
           <motion.div
             key={i}
             whileHover={{ y: -5 }}
-            className="bg-[#111] rounded-[2.5rem] p-6 space-y-4 border border-white/5 hover:border-[#59f20d]/20 transition-all"
+            className="bg-[#1a1a1a] rounded-[2.5rem] p-6 space-y-4 border border-white/5 hover:border-[#59f20d]/20 transition-all shadow-xl"
           >
-            <div className="flex items-center gap-3 text-gray-500">
+            <div className="flex items-center gap-3 text-white/30">
               <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center">
                 <item.icon className="w-4 h-4" />
               </div>
@@ -354,9 +380,9 @@ export function CalorieCalculator() {
                 step="0.5"
                 value={item.value || (item.min + item.max) / 2}
                 onChange={(e) => setCalculatorData((prev) => ({ ...prev, [item.field]: e.target.value }))}
-                className="w-full accent-[#59f20d] h-1.5 rounded-full bg-zinc-800"
+                className="w-full accent-[#59f20d] h-1.5 rounded-full bg-white/5"
               />
-              <div className="text-[10px] font-bold text-gray-600 text-center uppercase">{item.unit}</div>
+              <div className="text-[10px] font-bold text-white/20 text-center uppercase">{item.unit}</div>
             </div>
           </motion.div>
         ))}
@@ -364,9 +390,9 @@ export function CalorieCalculator() {
         {/* Gender Card */}
         <motion.div
           whileHover={{ y: -5 }}
-          className="bg-[#111] rounded-[2.5rem] p-6 space-y-4 border border-white/5"
+          className="bg-[#1a1a1a] rounded-[2.5rem] p-6 space-y-4 border border-white/5 shadow-xl"
         >
-          <div className="flex items-center gap-3 text-gray-500">
+          <div className="flex items-center gap-3 text-white/30">
             <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center">
               <User className="w-4 h-4" />
             </div>
@@ -376,8 +402,10 @@ export function CalorieCalculator() {
             <button
               onClick={() => setCalculatorData((prev) => ({ ...prev, gender: "male" }))}
               className={cn(
-                "flex-1 rounded-2xl font-black text-xs transition-all",
-                calculatorData.gender === "male" ? "bg-white text-black" : "bg-zinc-800/50 text-gray-500"
+                "flex-1 rounded-2xl font-black text-xs transition-all h-14",
+                calculatorData.gender === "male" 
+                  ? "bg-[#59f20d] text-black shadow-lg" 
+                  : "bg-white/5 text-white/40 hover:bg-white/10"
               )}
             >
               {isAr ? "ذكر" : "Male"}
@@ -385,8 +413,10 @@ export function CalorieCalculator() {
             <button
               onClick={() => setCalculatorData((prev) => ({ ...prev, gender: "female" }))}
               className={cn(
-                "flex-1 rounded-2xl font-black text-xs transition-all",
-                calculatorData.gender === "female" ? "bg-[#ff4d94] text-white shadow-[0_5px_15px_rgba(255,77,148,0.3)]" : "bg-zinc-800/50 text-gray-500"
+                "flex-1 rounded-2xl font-black text-xs transition-all h-14",
+                calculatorData.gender === "female" 
+                  ? "bg-[#ff4d94] text-white shadow-lg" 
+                  : "bg-white/5 text-white/40 hover:bg-white/10"
               )}
             >
               {isAr ? "أنثى" : "Female"}
@@ -397,9 +427,9 @@ export function CalorieCalculator() {
         {/* Age Card */}
         <motion.div
           whileHover={{ y: -5 }}
-          className="bg-[#111] rounded-[2.5rem] p-6 space-y-4 border border-white/5"
+          className="bg-[#1a1a1a] rounded-[2.5rem] p-6 space-y-4 border border-white/5 shadow-xl"
         >
-          <div className="flex items-center gap-3 text-gray-500">
+          <div className="flex items-center gap-3 text-white/30">
             <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center">
               <Calendar className="w-4 h-4" />
             </div>
@@ -419,17 +449,17 @@ export function CalorieCalculator() {
               max="80"
               value={calculatorData.age || 25}
               onChange={(e) => setCalculatorData((prev) => ({ ...prev, age: e.target.value }))}
-              className="w-full accent-[#59f20d] h-1.5 rounded-full bg-zinc-800"
+              className="w-full accent-[#59f20d] h-1.5 rounded-full bg-white/5"
             />
-            <div className="text-[10px] font-bold text-gray-600 text-center uppercase">{isAr ? "سنة" : "yr"}</div>
+            <div className="text-[10px] font-bold text-white/20 text-center uppercase">{isAr ? "سنة" : "yr"}</div>
           </div>
         </motion.div>
       </div>
 
       {/* Activity Level */}
       <div className="space-y-4">
-        <div className="flex items-center gap-3 text-gray-500">
-          <div className="w-8 h-8 rounded-xl bg-[#59f20d]/10 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-white/30">
+          <div className="w-8 h-8 rounded-xl bg-[#59f20d]/5 flex items-center justify-center">
             <Activity className="w-4 h-4 text-[#59f20d]" />
           </div>
           <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">{isAr ? "مستوى النشاط" : "Activity Level"}</h3>
@@ -446,19 +476,19 @@ export function CalorieCalculator() {
                 onClick={() => setCalculatorData((prev) => ({ ...prev, activityLevel: key as ActivityLevel }))}
                 className={cn(
                   "w-full flex items-center justify-between p-5 rounded-3xl transition-all duration-300",
-                  active ? "bg-[#59f20d]/10 border-2 border-[#59f20d] shadow-[0_10px_30px_rgba(89,242,13,0.1)]" : "bg-black border-2 border-white/5 hover:border-white/10"
+                  active ? "bg-[#59f20d]/10 border-2 border-[#59f20d]" : "bg-[#1a1a1a] border border-white/5 hover:border-white/10 shadow-xl"
                 )}
               >
                 <div className="flex items-center gap-4">
                   <div
                     className={cn(
                       "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                      active ? "border-[#59f20d] scale-110" : "border-zinc-700"
+                      active ? "border-[#59f20d] scale-110" : "border-zinc-800"
                     )}
                   >
                     {active && <motion.div layoutId="activeDot" className="w-3 h-3 rounded-full bg-[#59f20d]" />}
                   </div>
-                  <span className={cn("text-sm font-black tracking-tight", active ? "text-[#59f20d]" : "text-zinc-400")}>{label}</span>
+                  <span className={cn("text-sm font-black tracking-tight", active ? "text-[#59f20d]" : "text-white/40")}>{label}</span>
                 </div>
               </motion.button>
             );
@@ -473,25 +503,25 @@ export function CalorieCalculator() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4"
         >
-          <h3 className="text-[10px] font-black text-gray-500 text-center uppercase tracking-[0.3em]">{isAr ? "توزيع الماكروز" : "Macros Distribution"}</h3>
+          <h3 className="text-[10px] font-black text-white/30 text-center uppercase tracking-[0.3em]">{isAr ? "توزيع الماكروز" : "Macros Distribution"}</h3>
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: isAr ? "بروتين" : "Protein", value: macros.proteinG, color: "bg-orange-500", percent: "30%" },
               { label: isAr ? "كارب" : "Carbs", value: macros.carbsG, color: "bg-blue-500", percent: "50%" },
               { label: isAr ? "دهون" : "Fat", value: macros.fatG, color: "bg-[#59f20d]", percent: "20%" },
             ].map((macro, i) => (
-              <div key={i} className="bg-[#111] rounded-[2rem] p-5 border border-white/5 space-y-3 hover:border-white/20 transition-all">
-                <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{macro.label}</div>
-                <div className="text-2xl font-black tabular-nums">{macro.value}<span className="text-[10px] text-zinc-600 ml-1">g</span></div>
-                <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div key={i} className="bg-[#1a1a1a] rounded-[2rem] p-5 border border-white/5 space-y-3 hover:border-white/10 transition-all shadow-xl">
+                <div className="text-[10px] font-black text-white/20 uppercase tracking-widest">{macro.label}</div>
+                <div className="text-2xl font-black tabular-nums text-white">{macro.value}<span className="text-[10px] text-zinc-600 ml-1">g</span></div>
+                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: macro.percent }}
                     transition={{ duration: 1, delay: 0.5 }}
-                    className={cn("h-full rounded-full shadow-[0_0_10px_rgba(255,255,255,0.1)]", macro.color)}
+                    className={cn("h-full rounded-full shadow-[0_0_10px_rgba(255,255,255,0.05)]", macro.color)}
                   />
                 </div>
-                <div className="text-[10px] font-black text-zinc-500">{macro.percent}</div>
+                <div className="text-[10px] font-black text-white/20">{macro.percent}</div>
               </div>
             ))}
           </div>

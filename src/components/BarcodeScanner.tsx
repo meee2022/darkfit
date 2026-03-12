@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { X, ScanLine, CheckCircle, AlertCircle, Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { useLanguage } from "../lib/i18n";
+
 interface ScannedFood {
     barcode: string;
     nameEn: string;
@@ -19,11 +21,15 @@ interface BarcodeScannerProps {
 }
 
 export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
+    const { language } = useLanguage();
+    const isAr = language === "ar";
+
     const [isOpen, setIsOpen] = useState(false);
     const [scanning, setScanning] = useState(false);
     const [manualBarcode, setManualBarcode] = useState("");
     const [scannedFood, setScannedFood] = useState<ScannedFood | null>(null);
     const [error, setError] = useState("");
+
     const [loading, setLoading] = useState(false);
     const [selectedMeal, setSelectedMeal] = useState("lunch");
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -57,13 +63,13 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
             const data = await res.json();
 
             if (data.status !== 1 || !data.product) {
-                setError("لم يتم العثور على هذا المنتج في قاعدة البيانات");
+                setError(isAr ? "لم يتم العثور على هذا المنتج في قاعدة البيانات" : "Product not found in database");
                 return;
             }
 
             const p = data.product;
             const n = p.nutriments || {};
-            const nameEn = p.product_name || p.product_name_en || "منتج غير معروف";
+            const nameEn = p.product_name || p.product_name_en || (isAr ? "منتج غير معروف" : "Unknown product");
             const cal = n["energy-kcal_100g"] || n["energy-kcal"] || 0;
 
             setScannedFood({
@@ -78,7 +84,7 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
                 image: p.image_front_small_url,
             });
         } catch {
-            setError("فشل الاتصال بقاعدة بيانات الأطعمة");
+            setError(isAr ? "فشل الاتصال بقاعدة بيانات الأطعمة" : "Failed to connect to food database");
         } finally {
             setLoading(false);
         }
@@ -106,7 +112,7 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
 
             if (!BrowserMultiFormatReader) {
                 // Fallback: manual entry only
-                toast.info("الكاميرا تعمل — أدخل الباركود يدوياً إذا لم تعمل المسح");
+                toast.info(isAr ? "الكاميرا تعمل — أدخل الباركود يدوياً إذا لم تعمل المسح" : "Camera works — enter barcode manually if scan fails");
                 return;
             }
 
@@ -119,7 +125,7 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
                 }
             });
         } catch {
-            setError("تعذّر الوصول إلى الكاميرا — أدخل الباركود يدوياً");
+            setError(isAr ? "تعذّر الوصول إلى الكاميرا — أدخل الباركود يدوياً" : "Could not access camera — enter barcode manually");
         }
     };
 
@@ -144,7 +150,10 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
         if (onAddFood) {
             onAddFood(scannedFood, selectedMeal);
         }
-        toast.success(`✓ تمت إضافة "${scannedFood.nameAr}" إلى ${selectedMeal === "breakfast" ? "الفطور" : selectedMeal === "lunch" ? "الغداء" : "العشاء"}`);
+        const successMsg = isAr 
+            ? `✓ تمت إضافة "${scannedFood.nameAr}" إلى ${selectedMeal === "breakfast" ? "الفطور" : selectedMeal === "lunch" ? "الغداء" : selectedMeal === "dinner" ? "العشاء" : "سناك"}`
+            : `✓ Added "${scannedFood.nameEn}" to ${selectedMeal.charAt(0).toUpperCase() + selectedMeal.slice(1)}`;
+        toast.success(successMsg);
         handleClose();
     };
 
@@ -156,7 +165,7 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
                 className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 transition text-sm font-semibold"
             >
                 <ScanLine size={18} />
-                مسح باركود
+                {isAr ? "مسح باركود" : "Scan Barcode"}
             </button>
 
             {/* Modal */}
@@ -168,7 +177,7 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
                         <div className="flex items-center justify-between p-5 border-b border-zinc-800">
                             <h2 className="text-lg font-bold text-white flex items-center gap-2">
                                 <ScanLine className="text-blue-400" size={22} />
-                                مسح باركود الطعام
+                                {isAr ? "مسح باركود الطعام" : "Scan Food Barcode"}
                             </h2>
                             <button onClick={handleClose} className="text-zinc-400 hover:text-white transition">
                                 <X size={20} />
@@ -187,7 +196,7 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
                                 {!scanning && !scannedFood && (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                                         <ScanLine className="text-zinc-600" size={48} />
-                                        <p className="text-zinc-500 text-sm">اضغط لتشغيل الكاميرا</p>
+                                        <p className="text-zinc-500 text-sm">{isAr ? "اضغط لتشغيل الكاميرا" : "Click to start camera"}</p>
                                     </div>
                                 )}
                                 {scanning && (
@@ -203,7 +212,7 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
                                             </div>
                                         </div>
                                         <div className="absolute bottom-3 inset-x-0 text-center text-xs text-blue-300 animate-pulse">
-                                            جاري المسح...
+                                            {isAr ? "جاري المسح..." : "Scanning..."}
                                         </div>
                                     </>
                                 )}
@@ -215,22 +224,22 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
                                     onClick={startCamera}
                                     className="w-full py-3 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-400 font-semibold hover:bg-blue-500/20 transition flex items-center justify-center gap-2"
                                 >
-                                    <ScanLine size={18} /> تشغيل الكاميرا
+                                    <ScanLine size={18} /> {isAr ? "تشغيل الكاميرا" : "Start Camera"}
                                 </button>
                             ) : (
                                 <button
                                     onClick={stopCamera}
                                     className="w-full py-2 rounded-2xl bg-zinc-800 text-zinc-400 text-sm hover:bg-zinc-700 transition"
                                 >
-                                    إيقاف الكاميرا
+                                    {isAr ? "إيقاف الكاميرا" : "Stop Camera"}
                                 </button>
                             )}
 
                             {/* Manual input */}
-                            <div className="flex gap-2">
+                            <div className="flex gap-2" dir={isAr ? "rtl" : "ltr"}>
                                 <input
                                     className="flex-1 bg-zinc-800 border border-zinc-700 text-white rounded-xl px-3 py-2 text-sm placeholder:text-zinc-500 focus:outline-none focus:border-blue-500"
-                                    placeholder="أو أدخل الباركود يدوياً..."
+                                    placeholder={isAr ? "أو أدخل الباركود يدوياً..." : "Or enter barcode manually..."}
                                     value={manualBarcode}
                                     onChange={e => setManualBarcode(e.target.value)}
                                     onKeyDown={e => e.key === "Enter" && lookupBarcode(manualBarcode)}
@@ -240,7 +249,7 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
                                     disabled={loading}
                                     className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-bold hover:bg-blue-600 transition disabled:opacity-50"
                                 >
-                                    {loading ? "..." : "بحث"}
+                                    {loading ? "..." : (isAr ? "بحث" : "Search")}
                                 </button>
                             </div>
 
@@ -263,9 +272,9 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
                                         <div className="flex-1">
                                             <div className="flex items-center gap-1 mb-0.5">
                                                 <CheckCircle className="text-[#59f20d]" size={16} />
-                                                <span className="text-xs text-[#59f20d] font-semibold">تم المسح بنجاح</span>
+                                                <span className="text-xs text-[#59f20d] font-semibold">{isAr ? "تم المسح بنجاح" : "Scanned successfully"}</span>
                                             </div>
-                                            <h3 className="font-bold text-white leading-tight">{scannedFood.nameAr}</h3>
+                                            <h3 className="font-bold text-white leading-tight">{isAr ? scannedFood.nameAr : scannedFood.nameEn}</h3>
                                             {scannedFood.brand && (
                                                 <span className="text-xs text-zinc-400">{scannedFood.brand}</span>
                                             )}
@@ -273,12 +282,12 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
                                     </div>
 
                                     {/* Macros */}
-                                    <div className="grid grid-cols-4 gap-2 text-center">
+                                    <div className="grid grid-cols-4 gap-2 text-center" dir={isAr ? "rtl" : "ltr"}>
                                         {[
-                                            { label: "سعرات", val: scannedFood.calories, color: "text-[#59f20d]" },
-                                            { label: "بروتين", val: `${scannedFood.protein}g`, color: "text-blue-400" },
-                                            { label: "كارب", val: `${scannedFood.carbs}g`, color: "text-yellow-400" },
-                                            { label: "دهون", val: `${scannedFood.fat}g`, color: "text-orange-400" },
+                                            { label: isAr ? "سعرات" : "Cal", val: scannedFood.calories, color: "text-[#59f20d]" },
+                                            { label: isAr ? "بروتين" : "Pro", val: `${scannedFood.protein}g`, color: "text-blue-400" },
+                                            { label: isAr ? "كارب" : "Carb", val: `${scannedFood.carbs}g`, color: "text-yellow-400" },
+                                            { label: isAr ? "دهون" : "Fat", val: `${scannedFood.fat}g`, color: "text-orange-400" },
                                         ].map(({ label, val, color }) => (
                                             <div key={label} className="bg-zinc-900 rounded-xl p-2">
                                                 <div className={`text-sm font-bold ${color}`}>{val}</div>
@@ -292,11 +301,12 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
                                         value={selectedMeal}
                                         onChange={e => setSelectedMeal(e.target.value)}
                                         className="w-full bg-zinc-900 border border-zinc-700 text-white rounded-xl px-3 py-2 text-sm"
+                                        dir={isAr ? "rtl" : "ltr"}
                                     >
-                                        <option value="breakfast">فطور</option>
-                                        <option value="lunch">غداء</option>
-                                        <option value="dinner">عشاء</option>
-                                        <option value="snack">سناك</option>
+                                        <option value="breakfast">{isAr ? "فطور" : "Breakfast"}</option>
+                                        <option value="lunch">{isAr ? "غداء" : "Lunch"}</option>
+                                        <option value="dinner">{isAr ? "عشاء" : "Dinner"}</option>
+                                        <option value="snack">{isAr ? "سناك" : "Snack"}</option>
                                     </select>
 
                                     <button
@@ -304,7 +314,7 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
                                         className="w-full py-3 rounded-2xl bg-[#59f20d] text-black font-bold flex items-center justify-center gap-2 hover:bg-[#4ed10a] transition"
                                     >
                                         <Plus size={18} />
-                                        أضف للوجبة
+                                        {isAr ? "أضف للوجبة" : "Add to Meal"}
                                     </button>
                                 </div>
                             )}

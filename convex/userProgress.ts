@@ -255,3 +255,54 @@ export const unlockAchievement = mutation({
         return true;
     },
 });
+
+// --- Dashboard Stats ---
+
+export const getDashboardStats = query({
+    args: {},
+    handler: async (ctx) => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) {
+            return {
+                totalSessions: 0,
+                totalCalories: 0,
+                totalHours: 0,
+                completion: 0,
+            };
+        }
+
+        // Get total sessions from streaks
+        const streak = await ctx.db
+            .query("streaks")
+            .withIndex("by_user", (q) => q.eq("userId", userId))
+            .first();
+            
+        const totalSessions = streak?.totalWorkouts || 0;
+
+        // Get all workout sessions to calculate calories and duration
+        const sessions = await ctx.db
+            .query("workoutSessions")
+            .withIndex("by_user", (q) => q.eq("userId", userId))
+            .collect();
+
+        let totalCalories = 0;
+        let totalMinutes = 0;
+
+        for (const session of sessions) {
+            totalCalories += session.caloriesBurned || 0;
+            totalMinutes += session.duration || 0;
+        }
+
+        const totalHours = Math.round(totalMinutes / 60);
+        
+        // Mock completion percentage based on a monthly goal of 20 sessions
+        const completion = Math.min(100, Math.round((totalSessions / 20) * 100));
+
+        return {
+            totalSessions,
+            totalCalories,
+            totalHours,
+            completion,
+        };
+    },
+});

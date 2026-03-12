@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Activity, Heart, Moon, Sun, Plus, TrendingUp, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
 
+import { useLanguage, tr } from "../../lib/i18n";
+
 const SLEEP_KEY = "darkfit_sleep_logs";
 const HR_KEY = "darkfit_hr_logs";
 
@@ -30,18 +32,24 @@ function saveLogs<T>(key: string, logs: T[]) {
     localStorage.setItem(key, JSON.stringify(logs));
 }
 
-const QUALITY_LABELS: Record<string, { ar: string; color: string }> = {
-    excellent: { ar: "ممتاز", color: "text-green-400" },
-    good: { ar: "جيد", color: "text-blue-400" },
-    fair: { ar: "مقبول", color: "text-yellow-400" },
-    poor: { ar: "سيء", color: "text-red-400" },
+const QUALITY_LABELS: Record<string, { ar: string; en: string; color: string }> = {
+    excellent: { ar: "ممتاز", en: "Excellent", color: "text-green-400" },
+    good: { ar: "جيد", en: "Good", color: "text-blue-400" },
+    fair: { ar: "مقبول", en: "Fair", color: "text-yellow-400" },
+    poor: { ar: "سيء", en: "Poor", color: "text-red-400" },
 };
 
-const HR_CONTEXT_LABELS: Record<string, string> = {
-    rest: "راحة", exercise: "تمرين", wakeup: "عند الاستيقاظ"
+const HR_CONTEXT_LABELS: Record<string, { ar: string; en: string }> = {
+    rest: { ar: "راحة", en: "Resting" },
+    exercise: { ar: "تمرين", en: "Exercise" },
+    wakeup: { ar: "عند الاستيقاظ", en: "Wake Up" }
 };
+
 
 export function SleepTracker() {
+    const { language } = useLanguage();
+    const isAr = language === "ar";
+    
     const [sleepLogs, setSleepLogs] = useState<SleepLog[]>(() => getLogs<SleepLog>(SLEEP_KEY));
     const [hours, setHours] = useState(7);
     const [quality, setQuality] = useState<SleepLog["quality"]>("good");
@@ -60,7 +68,7 @@ export function SleepTracker() {
         setSleepLogs(updated);
         saveLogs(SLEEP_KEY, updated);
         setShowAdd(false);
-        toast.success(`✓ تم تسجيل ${hours} ساعات نوم`);
+        toast.success(isAr ? `✓ تم تسجيل ${hours} ساعات نوم` : `✓ Logged ${hours} hours of sleep`);
     };
 
     return (
@@ -71,16 +79,16 @@ export function SleepTracker() {
                         <Moon className="text-indigo-400" size={20} />
                     </div>
                     <div>
-                        <h3 className="font-bold text-white">متابعة النوم</h3>
-                        <p className="text-xs text-zinc-500">المتوسط آخر 7 أيام</p>
+                        <h3 className="font-bold text-white">{isAr ? "متابعة النوم" : "Sleep Monitor"}</h3>
+                        <p className="text-xs text-zinc-500">{isAr ? "المتوسط آخر 7 أيام" : "7-day average"}</p>
                     </div>
                 </div>
                 <div className="text-right">
-                    <div className="text-2xl font-black text-indigo-400">{avgSleep}<span className="text-sm text-zinc-500 font-normal"> ساعة</span></div>
+                    <div className="text-2xl font-black text-indigo-400" dir="ltr">{avgSleep}<span className="text-sm text-zinc-500 font-normal">{isAr ? " ساعة" : " hrs"}</span></div>
                     {avgSleep < 7 ? (
-                        <span className="text-xs text-yellow-400">⚠️ أقل من الموصى به</span>
+                        <span className="text-xs text-yellow-400">{isAr ? "⚠️ أقل من الموصى به" : "⚠️ Less than recommended"}</span>
                     ) : (
-                        <span className="text-xs text-green-400">✓ ممتاز</span>
+                        <span className="text-xs text-green-400">{isAr ? "✓ ممتاز" : "✓ Excellent"}</span>
                     )}
                 </div>
             </div>
@@ -108,29 +116,29 @@ export function SleepTracker() {
                     className="w-full py-2.5 rounded-2xl bg-indigo-500/10 text-indigo-400 text-sm font-semibold hover:bg-indigo-500/20 transition flex items-center justify-center gap-2 border border-indigo-500/20"
                 >
                     <Plus size={16} />
-                    {todayLogged ? `تعديل نوم اليوم (${lastLog.hours}h)` : "سجّل نومك اليوم"}
+                    {todayLogged ? (isAr ? `تعديل نوم اليوم (${lastLog.hours}h)` : `Edit Today's Sleep (${lastLog.hours}h)`) : (isAr ? "سجّل نومك اليوم" : "Log Sleep Today")}
                 </button>
             ) : (
                 <div className="bg-zinc-800 rounded-2xl p-4 space-y-3">
                     <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs text-zinc-400">عدد ساعات النوم: <span className="text-white font-bold">{hours}h</span></span>
+                        <div className="flex items-center justify-between" dir={isAr ? "rtl" : "ltr"}>
+                            <span className="text-xs text-zinc-400">{isAr ? "عدد ساعات النوم:" : "Sleep Hours:"} <span className="text-white font-bold">{hours}h</span></span>
                         </div>
                         <input type="range" min={1} max={12} step={0.5} value={hours}
                             onChange={e => setHours(Number(e.target.value))}
                             className="w-full accent-indigo-400" />
                     </div>
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-2 flex-wrap" dir={isAr ? "rtl" : "ltr"}>
                         {(["excellent", "good", "fair", "poor"] as const).map(q => (
                             <button key={q} onClick={() => setQuality(q)}
                                 className={`flex-1 py-1.5 text-xs rounded-xl font-semibold transition border ${quality === q ? "border-indigo-400 bg-indigo-500/20 text-indigo-300" : "border-zinc-700 text-zinc-500 hover:border-zinc-500"}`}>
-                                {QUALITY_LABELS[q].ar}
+                                {isAr ? QUALITY_LABELS[q].ar : QUALITY_LABELS[q].en}
                             </button>
                         ))}
                     </div>
-                    <div className="flex gap-2">
-                        <button onClick={() => setShowAdd(false)} className="flex-1 py-2 rounded-xl text-sm text-zinc-400 bg-zinc-900 hover:bg-zinc-800 transition">إلغاء</button>
-                        <button onClick={addLog} className="flex-1 py-2 rounded-xl text-sm font-bold bg-indigo-500 text-white hover:bg-indigo-600 transition">حفظ</button>
+                    <div className="flex gap-2" dir={isAr ? "rtl" : "ltr"}>
+                        <button onClick={() => setShowAdd(false)} className="flex-1 py-2 rounded-xl text-sm text-zinc-400 bg-zinc-900 hover:bg-zinc-800 transition">{isAr ? "إلغاء" : "Cancel"}</button>
+                        <button onClick={addLog} className="flex-1 py-2 rounded-xl text-sm font-bold bg-indigo-500 text-white hover:bg-indigo-600 transition">{isAr ? "حفظ" : "Save"}</button>
                     </div>
                 </div>
             )}
@@ -139,6 +147,9 @@ export function SleepTracker() {
 }
 
 export function HeartRateTracker() {
+    const { language } = useLanguage();
+    const isAr = language === "ar";
+    
     const [hrLogs, setHrLogs] = useState<HRLog[]>(() => getLogs<HRLog>(HR_KEY));
     const [bpm, setBpm] = useState(70);
     const [context, setContext] = useState<HRLog["context"]>("rest");
@@ -153,10 +164,10 @@ export function HeartRateTracker() {
     const lastLog = hrLogs[hrLogs.length - 1];
 
     const getHRZone = (b: number) => {
-        if (b < 60) return { label: "منخفض جداً", color: "text-blue-400" };
-        if (b < 100) return { label: "طبيعي", color: "text-green-400" };
-        if (b < 120) return { label: "مرتفع قليلاً", color: "text-yellow-400" };
-        return { label: "مرتفع", color: "text-red-400" };
+        if (b < 60) return { label: isAr ? "منخفض جداً" : "Very Low", color: "text-blue-400" };
+        if (b < 100) return { label: isAr ? "طبيعي" : "Normal", color: "text-green-400" };
+        if (b < 120) return { label: isAr ? "مرتفع قليلاً" : "Slightly High", color: "text-yellow-400" };
+        return { label: isAr ? "مرتفع" : "High", color: "text-red-400" };
     };
 
     const addLog = () => {
@@ -171,7 +182,7 @@ export function HeartRateTracker() {
         setHrLogs(updated);
         saveLogs(HR_KEY, updated);
         setShowAdd(false);
-        toast.success(`✓ تم تسجيل ${bpm} نبضة/دقيقة`);
+        toast.success(isAr ? `✓ تم تسجيل ${bpm} نبضة/دقيقة` : `✓ Logged ${bpm} bpm`);
     };
 
     // Simulated "measurement" — animates for 5s then shows result
@@ -199,8 +210,8 @@ export function HeartRateTracker() {
                         <Heart className="text-red-400" size={20} />
                     </div>
                     <div>
-                        <h3 className="font-bold text-white">معدل ضربات القلب</h3>
-                        <p className="text-xs text-zinc-500">متوسط الراحة (7 أيام)</p>
+                        <h3 className="font-bold text-white">{isAr ? "معدل ضربات القلب" : "Heart Rate"}</h3>
+                        <p className="text-xs text-zinc-500">{isAr ? "متوسط الراحة (7 أيام)" : "Resting Avg (7 days)"}</p>
                     </div>
                 </div>
                 <div className="text-right">
@@ -220,9 +231,9 @@ export function HeartRateTracker() {
                     {hrLogs.slice(-5).reverse().map((l, i) => {
                         const z = getHRZone(l.bpm);
                         return (
-                            <div key={i} className="flex items-center justify-between text-xs bg-zinc-800 rounded-xl px-3 py-2">
-                                <span className="text-zinc-400">{l.date} {l.time} — {HR_CONTEXT_LABELS[l.context]}</span>
-                                <span className={`font-bold ${z.color}`}>{l.bpm} bpm</span>
+                            <div key={i} className="flex items-center justify-between text-xs bg-zinc-800 rounded-xl px-3 py-2" dir={isAr ? "rtl" : "ltr"}>
+                                <span className="text-zinc-400" dir="ltr">{l.date} {l.time} — {isAr ? HR_CONTEXT_LABELS[l.context].ar : HR_CONTEXT_LABELS[l.context].en}</span>
+                                <span className={`font-bold ${z.color}`} dir="ltr">{l.bpm} bpm</span>
                             </div>
                         );
                     })}
@@ -230,46 +241,46 @@ export function HeartRateTracker() {
             )}
 
             {/* Actions */}
-            <div className="flex gap-2">
+            <div className="flex gap-2" dir={isAr ? "rtl" : "ltr"}>
                 <button
                     onClick={simulateMeasure}
                     disabled={measuring}
                     className="flex-1 py-2.5 rounded-2xl bg-red-500/10 text-red-400 text-sm font-semibold border border-red-500/20 hover:bg-red-500/20 transition disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                     <Heart size={14} className={measuring ? "animate-pulse" : ""} />
-                    {measuring ? "جاري القياس..." : "قِس الآن"}
+                    {measuring ? (isAr ? "جاري القياس..." : "Measuring...") : (isAr ? "قِس الآن" : "Measure Now")}
                 </button>
                 <button
                     onClick={() => setShowAdd(s => !s)}
                     className="flex-1 py-2.5 rounded-2xl bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700 transition flex items-center justify-center gap-2"
                 >
                     <Plus size={14} />
-                    أدخل يدوياً
+                    {isAr ? "أدخل يدوياً" : "Enter Manually"}
                 </button>
             </div>
 
             {showAdd && (
                 <div className="bg-zinc-800 rounded-2xl p-4 space-y-3">
                     <div className="space-y-1">
-                        <div className="flex justify-between text-xs text-zinc-400">
-                            <span>معدل النبض</span>
-                            <span className="text-white font-bold">{bpm} bpm</span>
+                        <div className="flex justify-between text-xs text-zinc-400" dir={isAr ? "rtl" : "ltr"}>
+                            <span>{isAr ? "معدل النبض" : "Heart Rate"}</span>
+                            <span className="text-white font-bold" dir="ltr">{bpm} bpm</span>
                         </div>
                         <input type="range" min={40} max={200} step={1} value={bpm}
                             onChange={e => setBpm(Number(e.target.value))}
                             className="w-full accent-red-400" />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2" dir={isAr ? "rtl" : "ltr"}>
                         {(["rest", "exercise", "wakeup"] as const).map(c => (
                             <button key={c} onClick={() => setContext(c)}
                                 className={`flex-1 py-1.5 text-[10px] rounded-xl font-semibold border transition ${context === c ? "border-red-400 bg-red-500/20 text-red-300" : "border-zinc-700 text-zinc-500 hover:border-zinc-500"}`}>
-                                {HR_CONTEXT_LABELS[c]}
+                                {isAr ? HR_CONTEXT_LABELS[c].ar : HR_CONTEXT_LABELS[c].en}
                             </button>
                         ))}
                     </div>
-                    <div className="flex gap-2">
-                        <button onClick={() => setShowAdd(false)} className="flex-1 py-2 rounded-xl text-xs text-zinc-400 bg-zinc-900 hover:bg-zinc-800 transition">إلغاء</button>
-                        <button onClick={addLog} className="flex-1 py-2 rounded-xl text-xs font-bold bg-red-500 text-white hover:bg-red-600 transition">حفظ</button>
+                    <div className="flex gap-2" dir={isAr ? "rtl" : "ltr"}>
+                        <button onClick={() => setShowAdd(false)} className="flex-1 py-2 rounded-xl text-xs text-zinc-400 bg-zinc-900 hover:bg-zinc-800 transition">{isAr ? "إلغاء" : "Cancel"}</button>
+                        <button onClick={addLog} className="flex-1 py-2 rounded-xl text-xs font-bold bg-red-500 text-white hover:bg-red-600 transition">{isAr ? "حفظ" : "Save"}</button>
                     </div>
                 </div>
             )}

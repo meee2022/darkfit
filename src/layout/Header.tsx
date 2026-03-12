@@ -1,18 +1,21 @@
-import { Authenticated } from "convex/react";
+import { Authenticated, Unauthenticated, useConvexAuth, useQuery } from "convex/react";
 import { Languages, ShieldCheck, User, ClipboardList } from "lucide-react";
 import { useLanguage } from "../lib/i18n";
 import { SignOutButton } from "../SignOutButton";
 import type { SectionId } from "../sections";
 import logoGym from "../assets/splash.jpg";
+import { api } from "../../convex/_generated/api";
 
 type Props = {
   activeSection: SectionId;
   setActiveSection: (id: SectionId) => void;
   isAdmin: boolean;
+  onSignInClick?: () => void;
 };
 
-export function Header({ activeSection, setActiveSection, isAdmin }: Props) {
+export function Header({ activeSection, setActiveSection, isAdmin, onSignInClick }: Props) {
   const { t, language, setLanguage } = useLanguage();
+  const profile = useQuery(api.profiles.getCurrentProfile);
 
   const tr = (key: string, fallback: string) => {
     try {
@@ -27,15 +30,15 @@ export function Header({ activeSection, setActiveSection, isAdmin }: Props) {
   return (
     <header
       className="
-        sticky top-0 z-50 backdrop-blur-xl
+        sticky top-0 z-[100] backdrop-blur-xl
         bg-white/90 text-zinc-900 border-b border-herb-100 shadow-soft
-        dark:bg-[#020617]/90 dark:text-zinc-50 dark:border-[#59f20d]/25
+        dark:bg-[#0c0c0c]/90 dark:text-zinc-50 dark:border-white/10
       "
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 h-16 flex items-center justify-between">
         {/* Logo + title */}
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-3xl border border-[#59f20d]/70 bg-black/80 shadow-[0_0_40px_rgba(35,242,100,0.65)] overflow-hidden flex items-center justify-center">
+          <div className="w-11 h-11 rounded-3xl border border-white/10 bg-black/80 shadow-[0_4px_10px_rgba(0,0,0,0.5)] overflow-hidden flex items-center justify-center">
             <img
               src={logoGym}
               alt="Gym Pro logo"
@@ -72,46 +75,17 @@ export function Header({ activeSection, setActiveSection, isAdmin }: Props) {
               {language === "ar" ? "EN" : "AR"}
             </button>
 
-            {/* Desktop quick access to Profile */}
-            <button
-              onClick={() => setActiveSection("profile")}
-              className="
-                hidden md:inline-flex px-3 py-2 rounded-2xl text-xs sm:text-sm font-semibold transition flex items-center gap-2
-                border bg-white/80 text-zinc-800 border-slate-200 shadow-soft
-                hover:bg-herb-50
-                dark:border-slate-700 dark:bg-[#1a2318]/70 dark:text-zinc-100
-                dark:hover:border-[#59f20d]/50 dark:hover:bg-[#1a2318]
-              "
-              type="button"
-              title={tr("profile", "الملف الشخصي")}
-            >
-              <User className="w-4 h-4 text-[#59f20d]" />
-              {tr("profile", "الملف الشخصي")}
-            </button>
 
-            {/* زر خطط المتدربين - للأدمن فقط */}
-            {isAdmin && (
-              <button
-                onClick={() => setActiveSection("coachPlans")}
-                className={`hidden md:inline-flex px-3 py-2 rounded-2xl text-xs sm:text-sm font-black transition items-center gap-2
-                  ${activeSection === "coachPlans"
-                    ? "bg-[#59f20d] text-zinc-950 shadow-[0_0_25px_rgba(89,242,13,0.5)] border border-[#59f20d]"
-                    : "border border-[#59f20d]/30 text-[#59f20d] bg-black/40 hover:bg-[#59f20d]/10 hover:border-[#59f20d]/60"
-                  }`}
-                type="button"
-              >
-                <ClipboardList className="w-4 h-4" />
-                {tr("coach_plans", "خطط المتدربين")}
-              </button>
-            )}
 
-            {/* زر لوحة الإدارة */}
+
+
+            {/* Admin Panel Button */}
             {isAdmin && (
               <button
                 onClick={() => setActiveSection("admin")}
-                className={`px-3 py-2 rounded-2xl text-xs sm:text-sm font-black transition flex items-center gap-2 ${activeSection === "admin"
-                    ? "bg-[#59f20d] text-zinc-950 shadow-[0_0_25px_rgba(89,242,13,0.5)] border border-[#59f20d]"
-                    : "border border-[#59f20d]/30 text-[#59f20d] bg-black/40 hover:bg-[#59f20d]/10 hover:border-[#59f20d]/60"
+                className={`px-3 py-2 rounded-2xl text-xs sm:text-sm font-semibold transition flex items-center gap-2 ${activeSection === "admin"
+                  ? "bg-[#59f20d] text-zinc-950 shadow-[0_0_25px_rgba(89,242,13,0.5)] border border-[#59f20d]"
+                  : "bg-white text-zinc-700 border border-slate-200 shadow-soft hover:bg-herb-50 dark:bg-[#1a2318]/70 dark:text-zinc-100 dark:border-slate-700 dark:hover:bg-[#1a2318]"
                   }`}
                 type="button"
               >
@@ -129,7 +103,29 @@ export function Header({ activeSection, setActiveSection, isAdmin }: Props) {
             </div>
           </div>
         </Authenticated>
+
+        {/* زر تسجيل الدخول للزوار */}
+        <Unauthenticated>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
+              className="px-3 py-2 rounded-2xl text-xs sm:text-sm font-semibold transition flex items-center gap-2 border bg-white/80 text-zinc-800 border-herb-100 shadow-soft hover:bg-herb-50 dark:border-[#59f20d]/25 dark:bg-[#1a2318]/70 dark:text-zinc-100 dark:hover:bg-[#59f20d]/10 dark:hover:border-[#59f20d]/60"
+              type="button"
+            >
+              <Languages className="w-4 h-4 text-[#59f20d]" />
+              {language === "ar" ? "EN" : "AR"}
+            </button>
+            <button
+              onClick={onSignInClick}
+              className="px-4 py-2 rounded-2xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-[#59f20d] text-zinc-950 hover:brightness-95 shadow-[0_0_20px_rgba(89,242,13,0.3)]"
+              type="button"
+            >
+              <User className="w-4 h-4" />
+              {language === "ar" ? "تسجيل الدخول" : "Sign In"}
+            </button>
+          </div>
+        </Unauthenticated>
       </div>
     </header>
   );
-}
+}

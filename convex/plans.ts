@@ -277,6 +277,16 @@ export const coachAssignWorkoutPlan = mutation({
       )
     ),
     daysPerWeek: v.optional(v.number()),
+    schedule: v.optional(
+      v.array(
+        v.object({
+          weekNumber: v.number(),
+          dayOfWeek: v.number(),
+          label: v.optional(v.string()),
+          exerciseIds: v.array(v.id("exercises")),
+        })
+      )
+    ),
   },
   handler: async (ctx, args) => {
     const coachProfile = await requireCoach(ctx);
@@ -285,13 +295,27 @@ export const coachAssignWorkoutPlan = mutation({
       throw new ConvexError("يجب اختيار تمرين واحد على الأقل");
     }
 
-    await ctx.db.insert("assignedPlans", {
+    // Normalize IDs to ensure they are valid for the database
+    const clientProfileId = ctx.db.normalizeId("profiles", args.clientProfileId);
+    if (!clientProfileId) throw new ConvexError("معرف المتدرب غير صالح");
+
+    const exerciseIds = args.exerciseIds
+      .map(id => ctx.db.normalizeId("exercises", id))
+      .filter(Boolean) as any[];
+
+    const schedule = args.schedule?.map(day => ({
+      ...day,
+      exerciseIds: day.exerciseIds
+        .map(id => ctx.db.normalizeId("exercises", id))
+        .filter(Boolean) as any[]
+    }));
+
+    const planId = await ctx.db.insert("assignedPlans", {
       coachProfileId: coachProfile._id,
-      clientProfileId: args.clientProfileId,
+      clientProfileId,
       type: "workout",
-      workoutExerciseIds: args.exerciseIds,
-      schedule: undefined,
-      nutritionPlanId: undefined,
+      workoutExerciseIds: exerciseIds,
+      schedule,
       title: args.title,
       notes: args.notes ?? "",
       level: args.level,
@@ -299,7 +323,7 @@ export const coachAssignWorkoutPlan = mutation({
       createdAt: Date.now(),
     });
 
-    return true;
+    return planId;
   },
 });
 

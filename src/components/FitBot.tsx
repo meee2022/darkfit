@@ -1,18 +1,22 @@
 import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { motion, AnimatePresence } from "framer-motion";
 import FitBotDisclaimer from "./FitBotDisclaimer";
 import { Id } from "../../convex/_generated/dataModel";
+import { ArrowRight } from "lucide-react";
+import { useLanguage } from "../lib/i18n";
 
-export default function FitBot() {
+export default function FitBot({ onBack }: { onBack?: () => void }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { t, language } = useLanguage();
+  const isAr = language === "ar";
 
-  const chatHistory = useQuery(api.fitbot.getChatHistory);
+  const chatHistory = useQuery(api.fitbot.getChatHistory, {});
   const remainingInfo = useQuery(api.fitbot.getRemainingQuestions);
-  const sendMessage = useMutation(api.fitbot.sendMessage);
+  const sendMessage = useAction(api.fitbot.sendMessage);
   const rateAnswer = useMutation(api.fitbot.rateAnswer);
   const clearHistory = useMutation(api.fitbot.clearChatHistory);
 
@@ -26,15 +30,13 @@ export default function FitBot() {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-
     const message = input.trim();
     setInput("");
     setIsLoading(true);
-
     try {
       await sendMessage({ message });
     } catch (error: any) {
-      alert(error.message || "حدث خطأ");
+      alert(error.message || t("err_generic"));
     } finally {
       setIsLoading(false);
     }
@@ -48,44 +50,60 @@ export default function FitBot() {
     }
   };
 
-  const quickQuestions = [
-    "ما أفضل تمارين لتقوية البطن؟",
-    "كيف أبني عضلات الذراعين بدون أوزان؟",
-    "ما الأطعمة الغنية بالبروتين؟",
-    "كيف أبدأ برنامج لياقة للمبتدئين؟",
-  ];
+  const quickQuestions = isAr
+    ? [
+        "ما أفضل تمارين لتقوية البطن؟",
+        "كيف أبني عضلات الذراعين بدون أوزان؟",
+        "ما الأطعمة الغنية بالبروتين؟",
+        "كيف أبدأ برنامج لياقة للمبتدئين؟",
+      ]
+    : [
+        "Best exercises for abs?",
+        "How to build arm muscles without weights?",
+        "What foods are high in protein?",
+        "How do I start a beginner fitness program?",
+      ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-4 text-gray-900" dir={isAr ? "rtl" : "ltr"}>
       <div className="max-w-5xl mx-auto">
         {/* Disclaimer */}
         <FitBotDisclaimer />
 
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-          <div className="flex items-center gap-4 mb-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6 relative">
+          {onBack && (
+            <button
+              onClick={onBack}
+              title={t("fitbot_back")}
+              className="absolute top-3 left-3 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-full transition"
+            >
+              <ArrowRight className={`w-4 h-4 ${isAr ? "" : "rotate-180"}`} />
+            </button>
+          )}
+          <div className="flex items-center gap-4 mb-4 mt-6 sm:mt-0">
             <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-green-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg">
               🤖
             </div>
             <div className="flex-1">
               <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-                فِتْبوت
+                {t("fitbot_title")}
               </h1>
-              <p className="text-gray-600 mt-1">مساعدك الذكي للياقة والتغذية</p>
+              <p className="text-gray-600 mt-1">{t("fitbot_subtitle")}</p>
             </div>
             {remainingInfo && (
               <div className="text-center bg-blue-50 px-6 py-3 rounded-xl border-2 border-blue-200">
                 <div className="text-3xl font-bold text-blue-600">
                   {remainingInfo.remaining}
                 </div>
-                <div className="text-xs text-gray-600">أسئلة متبقية اليوم</div>
+                <div className="text-xs text-gray-600">{t("fitbot_remaining")}</div>
               </div>
             )}
           </div>
-          
+
           <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
             <p className="text-sm text-green-800">
-              <strong>💡 يمكنني مساعدتك في:</strong> التمارين، التغذية، بناء العضلات، خسارة الوزن، نصائح اللياقة
+              <strong>💡 {isAr ? "يمكنني مساعدتك في:" : "I can help with:"}</strong> {t("fitbot_help")}
             </p>
           </div>
         </div>
@@ -98,10 +116,10 @@ export default function FitBot() {
               <div className="text-center py-20">
                 <div className="text-6xl mb-4">👋</div>
                 <p className="text-2xl font-bold text-gray-700 mb-2">
-                  مرحباً بك!
+                  {t("fitbot_welcome")}
                 </p>
                 <p className="text-gray-500">
-                  اسألني أي سؤال عن اللياقة والتغذية
+                  {t("fitbot_ask")}
                 </p>
               </div>
             )}
@@ -137,7 +155,7 @@ export default function FitBot() {
                         <div className="prose prose-sm max-w-none whitespace-pre-wrap text-gray-800">
                           {msg.response}
                         </div>
-                        
+
                         {/* Rating Buttons */}
                         {!msg.isBlocked && (
                           <div className="flex gap-2 mt-4 pt-3 border-t">
@@ -149,7 +167,7 @@ export default function FitBot() {
                                   : "bg-gray-100 hover:bg-green-100 text-gray-600"
                               }`}
                             >
-                              👍 مفيد
+                              👍 {t("fitbot_useful")}
                             </button>
                             <button
                               onClick={() => handleRate(msg._id, "bad")}
@@ -159,7 +177,7 @@ export default function FitBot() {
                                   : "bg-gray-100 hover:bg-red-100 text-gray-600"
                               }`}
                             >
-                              👎 غير مفيد
+                              👎 {t("fitbot_not_useful")}
                             </button>
                           </div>
                         )}
@@ -201,8 +219,8 @@ export default function FitBot() {
                     handleSend();
                   }
                 }}
-                placeholder="اكتب سؤالك هنا... (مثل: ما أفضل تمارين للصدر؟)"
-                className="flex-1 p-4 border-2 border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+                placeholder={t("fitbot_placeholder")}
+                className="flex-1 p-4 bg-white text-gray-900 placeholder:text-gray-400 border-2 border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
                 rows={2}
                 disabled={isLoading || (remainingInfo?.remaining === 0)}
                 maxLength={500}
@@ -213,23 +231,23 @@ export default function FitBot() {
                   disabled={!input.trim() || isLoading || (remainingInfo?.remaining === 0)}
                   className="px-8 py-4 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-xl hover:from-blue-600 hover:to-green-600 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed transition font-bold shadow-lg"
                 >
-                  {isLoading ? "⏳" : "إرسال 📤"}
+                  {isLoading ? "⏳" : `${t("fitbot_send")} 📤`}
                 </button>
                 <button
                   onClick={() => {
-                    if (confirm("هل تريد مسح سجل المحادثات؟")) {
+                    if (confirm(t("fitbot_clear_confirm"))) {
                       clearHistory();
                     }
                   }}
                   className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 text-sm shadow-lg transition"
-                  title="مسح السجل"
+                  title={t("fitbot_clear")}
                 >
                   🗑️
                 </button>
               </div>
             </div>
             <div className="text-xs text-gray-500 mt-2 text-left">
-              {input.length}/500 حرف
+              {input.length}/500 {t("fitbot_chars")}
             </div>
           </div>
         </div>
@@ -238,14 +256,14 @@ export default function FitBot() {
         <div className="mt-6 bg-white rounded-2xl shadow-xl p-6">
           <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
             <span className="text-2xl">💡</span>
-            أسئلة سريعة:
+            {t("fitbot_quick")}
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {quickQuestions.map((q, idx) => (
               <button
                 key={idx}
                 onClick={() => setInput(q)}
-                className="text-right px-4 py-3 bg-gradient-to-r from-blue-50 to-green-50 border-2 border-blue-200 rounded-xl hover:border-blue-400 hover:shadow-md transition text-sm"
+                className="text-right px-4 py-3 bg-gradient-to-r from-blue-50 to-green-50 border-2 border-blue-200 rounded-xl hover:border-blue-400 hover:shadow-md transition text-sm text-gray-900 font-medium"
               >
                 <span className="text-blue-600 font-bold">•</span> {q}
               </button>
@@ -256,7 +274,7 @@ export default function FitBot() {
         {/* Beta Badge */}
         <div className="mt-6 text-center">
           <span className="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-sm font-bold border-2 border-yellow-300">
-            🚧 نسخة تجريبية (Beta) - ساعدنا بتقييم الإجابات
+            🚧 {t("fitbot_beta")}
           </span>
         </div>
       </div>

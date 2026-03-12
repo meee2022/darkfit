@@ -32,11 +32,8 @@ html {
 body {
   font-family: "Cairo", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   min-height: 100vh;
-  background-color: #0a0d08;
+  background-color: #0c0c0c;
   /* إزالة النيون من الخلفية */
-  background-image: 
-    radial-gradient(circle at 20% 50%, rgba(89, 242, 13, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(89, 242, 13, 0.02) 0%, transparent 50%);
   background-attachment: fixed;
   color: #f9fafb;
   font-weight: 500;
@@ -102,14 +99,17 @@ body {
 ========================= */
 
 @layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* خلفية التطبيق العامة */
   .bg-app {
-    @apply bg-[#0a0d08];
-    background-image: radial-gradient(
-      900px 500px at 50% -10%,
-      rgba(89, 242, 13, 0.18),
-      transparent 60%
-    );
+    @apply bg-[#0c0c0c];
   }
 
   .text-app {

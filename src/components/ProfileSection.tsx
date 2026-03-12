@@ -332,8 +332,9 @@ export function ProfileSection({ onNavigate }: { onNavigate?: (tab: string) => v
         {/* Profile Header Card */}
         <div className="bg-[#0a0d08] backdrop-blur-xl rounded-3xl border-2 border-zinc-800 p-6">
           <div className="flex flex-col items-center text-center space-y-4">
+            {/* Avatar with upload button */}
             <div className="relative">
-              <div className="w-32 h-32 rounded-full border-4 border-zinc-700 overflow-hidden bg-zinc-900">
+              <div className="w-32 h-32 rounded-full border-4 border-[#59f20d]/40 overflow-hidden bg-zinc-900">
                 {profile.profileImage ? (
                   <img
                     src={profile.profileImage}
@@ -347,7 +348,50 @@ export function ProfileSection({ onNavigate }: { onNavigate?: (tab: string) => v
                 )}
               </div>
 
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-zinc-800 text-white text-xs font-bold">
+              {/* Upload button */}
+              <label
+                htmlFor="profile-photo-upload"
+                className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-[#59f20d] flex items-center justify-center cursor-pointer shadow-lg hover:brightness-110 transition border-2 border-black"
+                title={isAr ? "تغيير الصورة" : "Change photo"}
+              >
+                <Camera className="w-4 h-4 text-black" />
+              </label>
+              <input
+                id="profile-photo-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  // Compress via canvas
+                  const reader = new FileReader();
+                  reader.onload = async (ev) => {
+                    const img = new Image();
+                    img.onload = async () => {
+                      const canvas = document.createElement("canvas");
+                      const maxSize = 400;
+                      const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+                      canvas.width = img.width * scale;
+                      canvas.height = img.height * scale;
+                      canvas.getContext("2d")?.drawImage(img, 0, 0, canvas.width, canvas.height);
+                      const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+                      try {
+                        await updateProfile({ profileImage: dataUrl });
+                        toast.success(isAr ? "تم تحديث الصورة ✓" : "Photo updated ✓");
+                      } catch {
+                        toast.error(isAr ? "فشل رفع الصورة" : "Failed to upload photo");
+                      }
+                    };
+                    img.src = ev.target?.result as string;
+                  };
+                  reader.readAsDataURL(file);
+                  // Reset input so same file can be re-selected
+                  e.target.value = "";
+                }}
+              />
+
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-zinc-800 text-white text-xs font-bold whitespace-nowrap">
                 {membershipType}
               </div>
             </div>

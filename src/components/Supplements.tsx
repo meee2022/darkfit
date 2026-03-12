@@ -51,22 +51,22 @@ function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-function evidenceBadge(level: EvidenceLevel, tr: (k: string, fb: string) => string) {
+function evidenceBadge(level: EvidenceLevel, isAr: boolean) {
   const map: Record<EvidenceLevel, { label: string; bg: string; text: string; icon: React.ReactNode }> = {
     strong: {
-      label: tr("evidence_strong", "دليل قوي"),
+      label: isAr ? "دليل قوي" : "Strong Evidence",
       bg: "bg-[#59f20d]/20",
       text: "text-[#59f20d]",
       icon: <CheckCircle2 className="w-4 h-4" />,
     },
     moderate: {
-      label: tr("evidence_moderate", "دليل متوسط"),
+      label: isAr ? "دليل متوسط" : "Moderate Evidence",
       bg: "bg-amber-500/20",
       text: "text-amber-400",
       icon: <AlertTriangle className="w-4 h-4" />,
     },
     limited: {
-      label: tr("evidence_limited", "دليل محدود"),
+      label: isAr ? "دليل محدود" : "Limited Evidence",
       bg: "bg-slate-500/20",
       text: "text-slate-400",
       icon: <Info className="w-4 h-4" />,
@@ -75,10 +75,10 @@ function evidenceBadge(level: EvidenceLevel, tr: (k: string, fb: string) => stri
   return map[level];
 }
 
-function catLabel(cat: SupplementCategory, tr: (k: string, fb: string) => string) {
-  if (cat === "performance") return tr("supp_performance", "بناء العضلات");
-  if (cat === "health") return tr("supp_health", "الصحة والفيتامينات");
-  return tr("supp_recovery", "التعافي");
+function catLabel(cat: SupplementCategory, isAr: boolean) {
+  if (cat === "performance") return isAr ? "بناء العضلات" : "Muscle Building";
+  if (cat === "health") return isAr ? "الصحة والفيتامينات" : "Health & Vitamins";
+  return isAr ? "التعافي" : "Recovery";
 }
 
 function catIcon(cat: SupplementCategory) {
@@ -113,14 +113,16 @@ function ProductCard({
   language: string;
   tr: (k: string, fb: string) => string;
 }) {
-  const name = language === "ar" ? supplement.name.ar : supplement.name.en;
-  const brief = language === "ar" ? supplement.brief.ar : supplement.brief.en;
-  const badge = evidenceBadge(supplement.evidence, tr);
+  const isAr = language === "ar";
+  const name = isAr ? supplement.name.ar : supplement.name.en;
+  const brief = isAr ? supplement.brief.ar : supplement.brief.en;
+  const badge = evidenceBadge(supplement.evidence, isAr);
 
   return (
     <button
       onClick={onClick}
-      className="group relative overflow-hidden rounded-3xl bg-zinc-900/40 backdrop-blur-xl border border-zinc-800/50 hover:border-[#59f20d]/50 transition-all duration-300 hover:scale-[1.02] text-right"
+      className="group relative overflow-hidden rounded-3xl bg-zinc-900/40 backdrop-blur-xl border border-zinc-800/50 hover:border-[#59f20d]/50 transition-all duration-300 hover:scale-[1.02]"
+      dir={language === "ar" ? "rtl" : "ltr"}
     >
       {/* Image Section */}
       <div className="relative h-56 overflow-hidden bg-[#0a0d08]">
@@ -128,13 +130,18 @@ function ProductCard({
           src={
             supplement.imageResolved ||
             supplement.imageUrl ||
-            localImageFallback(name)
+            localImageFallback(supplement.name.en)
           }
           alt={name}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
           loading="lazy"
           onError={(e) => {
-            e.currentTarget.src = "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=800&q=80";
+            const currentSrc = e.currentTarget.src;
+            if (currentSrc.endsWith('.jpg')) {
+                e.currentTarget.src = currentSrc.replace('.jpg', '.png');
+            } else {
+                e.currentTarget.src = "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=800&q=80";
+            }
           }}
         />
 
@@ -150,10 +157,10 @@ function ProductCard({
         </div>
 
         {/* Category Badge */}
-        <div className="absolute top-3 right-3">
+        <div className={`absolute top-3 ${isAr ? "right-3" : "right-3"}`}>
           <div className="flex items-center gap-2 px-3 py-2 rounded-2xl backdrop-blur-xl bg-[#59f20d]/20 border border-[#59f20d]/30 text-[#59f20d]">
             {catIcon(supplement.category)}
-            <span className="text-xs font-bold">{catLabel(supplement.category, tr)}</span>
+            <span className="text-xs font-bold">{catLabel(supplement.category, isAr)}</span>
           </div>
         </div>
 
@@ -194,8 +201,8 @@ function ProductCard({
         {/* Action Button */}
         <div className="flex items-center gap-3 pt-2">
           <div className="flex-1 flex items-center justify-between px-4 py-3 rounded-2xl bg-[#59f20d] text-black font-bold hover:bg-[#4ed10a] transition-all">
-            <span className="text-sm">عرض التفاصيل</span>
-            <ChevronRight className="w-4 h-4" />
+            <span className="text-sm">{isAr ? "عرض التفاصيل" : "View Details"}</span>
+            <ChevronRight className={`w-4 h-4 ${isAr ? "" : "rotate-180"}`} />
           </div>
         </div>
       </div>
@@ -272,10 +279,10 @@ export function Supplements() {
             </div>
             <div>
               <h1 className="text-3xl font-black text-white">
-                {tr("supplements_store", "متجر المكملات")}
+                {isRTL ? "متجر المكملات" : "Supplements Store"}
               </h1>
               <p className="text-sm text-gray-400">
-                {tr("supplements_subtitle", "دليلك الشامل للمكملات الغذائية المدعومة علميًا")}
+                {isRTL ? "دليلك الشامل للمكملات الغذائية المدعومة علميًا" : "Your comprehensive guide to scientifically supported dietary supplements"}
               </p>
             </div>
           </div>
@@ -287,9 +294,9 @@ export function Supplements() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={tr("search_supplements", "ابحث عن المكمل الغذائي المثالي...")}
+              placeholder={isRTL ? "ابحث عن المكمل الغذائي المثالي..." : "Search for the perfect supplement..."}
               className="w-full bg-zinc-900/60 backdrop-blur-sm border border-zinc-800/60 rounded-2xl px-12 py-4 text-white placeholder:text-gray-500 focus:outline-none focus:border-[#59f20d]/50 focus:ring-2 focus:ring-[#59f20d]/20 transition-all"
-              dir="rtl"
+              dir={isRTL ? "rtl" : "ltr"}
             />
             <button className="absolute left-3 top-1/2 -translate-y-1/2 px-4 py-2 bg-[#59f20d] text-black font-bold rounded-xl hover:bg-[#4ed10a] transition-all">
               <Filter className="w-4 h-4" />
@@ -297,7 +304,7 @@ export function Supplements() {
           </div>
 
           {/* Category Filters */}
-          <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide" dir={isRTL ? "rtl" : "ltr"}>
             <button
               onClick={() => setActiveCat("all")}
               className={cn(
@@ -307,7 +314,7 @@ export function Supplements() {
                   : "bg-zinc-900 text-gray-300 border border-zinc-800/60 hover:border-[#59f20d]/50"
               )}
             >
-              {tr("all", "الكل")}
+              {isRTL ? "الكل" : "All"}
             </button>
             <button
               onClick={() => setActiveCat("performance")}
@@ -319,7 +326,7 @@ export function Supplements() {
               )}
             >
               <TrendingUp className="w-4 h-4" />
-              {catLabel("performance", tr)}
+              {catLabel("performance", isRTL)}
             </button>
             <button
               onClick={() => setActiveCat("health")}
@@ -331,7 +338,7 @@ export function Supplements() {
               )}
             >
               <Heart className="w-4 h-4" />
-              {catLabel("health", tr)}
+              {catLabel("health", isRTL)}
             </button>
             <button
               onClick={() => setActiveCat("recovery")}
@@ -343,7 +350,7 @@ export function Supplements() {
               )}
             >
               <Sparkles className="w-4 h-4" />
-              {catLabel("recovery", tr)}
+              {catLabel("recovery", isRTL)}
             </button>
           </div>
         </div>
@@ -356,14 +363,14 @@ export function Supplements() {
             <Pill className="w-10 h-10 text-gray-500" />
           </div>
           <p className="text-gray-400 text-lg font-medium">
-            {tr("no_supplements", "لا توجد مكملات متاحة")}
+            {isRTL ? "لا توجد مكملات متاحة" : "No supplements available"}
           </p>
           {rows === undefined && (
             <button
               onClick={() => seed({})}
               className="px-6 py-3 bg-[#59f20d] text-black font-bold rounded-2xl hover:bg-[#4ed10a] transition-all"
             >
-              {tr("seed_samples", "إضافة بيانات تجريبية")}
+              {isRTL ? "إضافة بيانات تجريبية" : "Seed Sample Data"}
             </button>
           )}
         </div>
@@ -405,146 +412,151 @@ export function Supplements() {
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+            <div className="overflow-y-auto max-h-[calc(90vh-80px)] scrollbar-hide">
+              {/* Mobile Brief Header - Only visible on small screens to give info fast */}
+              <div className="md:hidden p-5 bg-[#59f20d]/5 border-b border-[#59f20d]/10">
+                <p className="text-base text-[#59f20d] font-bold leading-relaxed text-right">
+                  {language === "ar" ? selected.brief.ar : selected.brief.en}
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-5 gap-0">
-                {/* Left Column - Image */}
-                <div className="md:col-span-2 bg-zinc-900/40 p-6 space-y-4">
-                  <div className="rounded-3xl overflow-hidden border border-zinc-800/60">
+                {/* Left Column - Image & Quick Badges */}
+                <div className="md:col-span-2 bg-zinc-900/20 p-4 sm:p-6 space-y-4 border-b md:border-b-0 md:border-l border-zinc-800/40">
+                  <div className="relative group rounded-3xl overflow-hidden border border-zinc-800/60 shadow-xl">
                     <img
                       src={
                         selected.imageResolved ||
                         selected.imageUrl ||
-                        localImageFallback(
-                          language === "ar" ? selected.name.ar : selected.name.en
-                        )
+                        localImageFallback(selected.name.en)
                       }
                       alt={language === "ar" ? selected.name.ar : selected.name.en}
-                      className="w-full h-64 object-cover"
+                      className="w-full h-32 sm:h-64 object-cover group-hover:scale-105 transition-transform duration-500"
                       loading="lazy"
                       onError={(e) => {
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=800&q=80";
+                         const currentSrc = e.currentTarget.src;
+                         if (currentSrc.endsWith('.jpg')) {
+                            e.currentTarget.src = currentSrc.replace('.jpg', '.png');
+                         } else {
+                            e.currentTarget.src = "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=800&q=80";
+                         }
                       }}
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   </div>
 
-                  {/* Evidence & Category */}
-                  <div className="space-y-3">
+                  {/* Compact Badge Grid */}
+                  <div className="grid grid-cols-2 gap-2">
                     {(() => {
-                      const badge = evidenceBadge(selected.evidence, tr);
+                      const badge = evidenceBadge(selected.evidence, isRTL);
                       return (
-                        <div className={cn("flex items-center gap-3 p-4 rounded-2xl", badge.bg)}>
-                          <div className={badge.text}>{badge.icon}</div>
-                          <div>
-                            <p className="text-xs text-gray-400 font-medium">مستوى الدليل</p>
-                            <p className={cn("text-sm font-bold", badge.text)}>{badge.label}</p>
+                        <div className={cn("flex flex-col gap-0.5 p-2 rounded-xl border border-white/5", badge.bg)}>
+                          <div className={cn("flex items-center gap-1.5", badge.text)}>
+                            {badge.icon}
+                            <span className="text-[9px] uppercase tracking-wider font-bold opacity-70">{isRTL ? "الدليل" : "Evidence"}</span>
                           </div>
+                          <p className={cn("text-[11px] font-black", badge.text)}>{badge.label}</p>
                         </div>
                       );
                     })()}
 
-                    <div className="flex items-center gap-3 p-4 rounded-2xl bg-[#59f20d]/5">
-                      {catIcon(selected.category)}
-                      <div>
-                        <p className="text-xs text-gray-400 font-medium">التصنيف</p>
-                        <p className="text-sm font-bold text-[#59f20d]">
-                          {catLabel(selected.category, tr)}
-                        </p>
+                    <div className="flex flex-col gap-0.5 p-2 rounded-xl bg-[#59f20d]/5 border border-[#59f20d]/10">
+                      <div className="flex items-center gap-1.5 text-[#59f20d]">
+                        {catIcon(selected.category)}
+                        <span className="text-[9px] uppercase tracking-wider font-bold opacity-70">{isRTL ? "التصنيف" : "Category"}</span>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Tags */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold text-gray-400">الكلمات المفتاحية</p>
-                    <div className="flex flex-wrap gap-2">
-                      {(selected.tags || []).map((tag, i) => (
-                        <span
-                          key={i}
-                          className="px-3 py-1.5 rounded-xl bg-zinc-800/80 text-gray-300 text-xs font-medium"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+                      <p className="text-[11px] font-black text-[#59f20d]">
+                        {catLabel(selected.category, isRTL)}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Right Column - Details */}
-                <div className="md:col-span-3 p-6 space-y-6 text-right">
+                <div className="md:col-span-3 p-5 sm:p-8 space-y-6 text-right bg-gradient-to-b from-transparent to-black/20" dir={language === "ar" ? "rtl" : "ltr"}>
+                  {/* Desktop Brief introduction */}
+                  <div className="hidden md:block space-y-2 border-b border-zinc-800/40 pb-6">
+                    <p className="text-lg text-[#59f20d] font-bold leading-relaxed">
+                      {language === "ar" ? selected.brief.ar : selected.brief.en}
+                    </p>
+                  </div>
+
                   <Section
-                    title={tr("supp_function", "آلية العمل")}
+                    title={isRTL ? "آلية العمل" : "Mechanism of Action"}
                     icon={<Info className="w-5 h-5" />}
                   >
-                    <p className="text-sm text-gray-300 leading-relaxed">
+                    <p className="text-sm text-gray-300 leading-relaxed bg-zinc-900/30 p-4 rounded-2xl border border-white/5">
                       {language === "ar" ? selected.function.ar : selected.function.en}
                     </p>
                   </Section>
 
                   <Section
-                    title={tr("supp_benefits", "الفوائد المدعومة علميًا")}
+                    title={isRTL ? "الفوائد المدعومة علميًا" : "Scientifically Supported Benefits"}
                     icon={<CheckCircle2 className="w-5 h-5" />}
                   >
-                    <ul className="space-y-2">
+                    <div className="grid grid-cols-1 gap-3">
                       {(language === "ar" ? selected.benefits.ar : selected.benefits.en).map(
                         (b, i) => (
-                          <li key={i} className="flex items-start gap-3">
+                          <div key={i} className="flex items-start gap-4 p-3 rounded-2xl bg-zinc-900/20 border border-white/5">
                             <CheckCircle2 className="w-5 h-5 text-[#59f20d] flex-shrink-0 mt-0.5" />
                             <span className="text-sm text-gray-300">{b}</span>
-                          </li>
+                          </div>
                         )
                       )}
-                    </ul>
-                  </Section>
-
-                  <Section
-                    title={tr("supp_typical", "طريقة الاستخدام الشائعة")}
-                    icon={<Sparkles className="w-5 h-5" />}
-                  >
-                    <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/60">
-                      <p className="text-sm text-gray-300">
-                        {language === "ar" ? selected.typicalUse.ar : selected.typicalUse.en}
-                      </p>
                     </div>
                   </Section>
 
-                  <Section
-                    title={tr("supp_cautions", "تحذيرات مهمة")}
-                    icon={<ShieldAlert className="w-5 h-5" />}
-                  >
-                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30">
-                      <ul className="space-y-2">
-                        {(language === "ar" ? selected.cautions.ar : selected.cautions.en).map(
-                          (c, i) => (
-                            <li key={i} className="flex items-start gap-3">
-                              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm text-amber-200">{c}</span>
-                            </li>
-                          )
-                        )}
-                      </ul>
-                    </div>
-                  </Section>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Section
+                      title={isRTL ? "طريقة الاستخدام" : "Typical Usage"}
+                      icon={<Sparkles className="w-5 h-5" />}
+                    >
+                      <div className="h-full p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/60">
+                        <p className="text-sm text-gray-300">
+                          {language === "ar" ? selected.typicalUse.ar : selected.typicalUse.en}
+                        </p>
+                      </div>
+                    </Section>
+
+                    <Section
+                      title={isRTL ? "تحذيرات" : "Cautions"}
+                      icon={<ShieldAlert className="w-5 h-5" />}
+                    >
+                      <div className="h-full p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20">
+                        <ul className="space-y-2">
+                          {(language === "ar" ? selected.cautions.ar : selected.cautions.en).map(
+                            (c, i) => (
+                              <li key={i} className="flex items-start gap-3">
+                                <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+                                <span className="text-xs text-rose-200">{c}</span>
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                    </Section>
+                  </div>
 
                   {/* References */}
                   {selected.refs && selected.refs.length > 0 && (
                     <Section
-                      title={tr("references", "المراجع العلمية")}
+                      title={isRTL ? "المراجع العلمية" : "Scientific References"}
                       icon={<ExternalLink className="w-5 h-5" />}
                     >
-                      <div className="space-y-2">
+                      <div className="grid grid-cols-1 gap-2">
                         {selected.refs.map((ref, i) => (
                           <a
                             key={i}
                             href={ref.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/40 border border-zinc-800/60 hover:border-[#59f20d]/50 transition-all group"
+                            className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 hover:border-[#59f20d]/50 transition-all group"
                           >
                             <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-[#59f20d]" />
                             <div className="flex-1 text-right">
-                              <p className="text-sm font-medium text-white">{ref.title}</p>
+                              <p className="text-sm font-bold text-white group-hover:text-[#59f20d] transition-colors">{ref.title}</p>
                               {ref.source && (
-                                <p className="text-xs text-gray-400">{ref.source}</p>
+                                <p className="text-[10px] uppercase font-black text-gray-500">{ref.source}</p>
                               )}
                             </div>
                           </a>
