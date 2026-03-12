@@ -13,7 +13,8 @@ import {
   CheckCircle2,
   Dumbbell,
   Scale,
-  Calendar
+  Calendar,
+  Zap
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../lib/utils";
@@ -55,9 +56,30 @@ export function ProfileSetup() {
     return Math.round(bmr * multipliers[formData.fitnessLevel]);
   }, [formData]);
 
+  const calculateMacros = useMemo(() => {
+    const calories = calculateMaintenance;
+    if (calories === 0) return { protein: 0, carbs: 0, fats: 0 };
+
+    const goal = formData.goals[0] || "تحسين الصحة العامة";
+    let pRatio = 0.25, cRatio = 0.45, fRatio = 0.30;
+
+    if (goal === "فقدان الوزن") {
+      pRatio = 0.40; cRatio = 0.30; fRatio = 0.30;
+    } else if (goal === "بناء العضلات") {
+      pRatio = 0.30; cRatio = 0.50; fRatio = 0.20;
+    }
+
+    return {
+      protein: Math.round((calories * pRatio) / 4),
+      carbs: Math.round((calories * cRatio) / 4),
+      fats: Math.round((calories * fRatio) / 9)
+    };
+  }, [calculateMaintenance, formData.goals]);
+
   const handleFinalSubmit = async () => {
     setIsSubmitting(true);
     try {
+      const macros = calculateMacros;
       await createProfile({
         name: formData.name.trim() || "User",
         age: formData.age ? parseInt(formData.age, 10) : undefined,
@@ -71,6 +93,9 @@ export function ProfileSetup() {
         trainingLocation: formData.trainingLocation,
         experienceWithWeights: formData.experienceWithWeights,
         calories: calculateMaintenance,
+        protein: macros.protein,
+        carbs: macros.carbs,
+        fats: macros.fats,
       });
       setStep(5);
     } catch (error) {
@@ -406,10 +431,58 @@ export function ProfileSetup() {
               </div>
               <div className="space-y-4">
                 <h2 className="text-4xl font-black text-white">تم تجهيز خطتك يا {formData.name.split(" ")[0]}!</h2>
-                <p className="text-zinc-500 text-lg font-medium">بناءً على بياناتك، قمنا بتخصيص هدف سعراتك اليومي:</p>
-                <div className="bg-[#111] border border-[#59f20d]/30 inline-block px-10 py-6 rounded-3xl shadow-[0_20px_40px_rgba(89,242,13,0.1)]">
-                  <div className="text-5xl font-black text-[#59f20d] tabular-nums">{calculateMaintenance}</div>
-                  <div className="text-xs font-bold text-zinc-500 mt-2 uppercase tracking-widest">سعرة حرارية يومياً</div>
+                <p className="text-zinc-500 text-lg font-medium">بناءً على بياناتك، قمنا بتخصيص هدفك اليومي:</p>
+                
+                <div className="relative group p-8 rounded-[2.5rem] bg-gradient-to-br from-[#111] to-black border border-[#59f20d]/30 shadow-2xl overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#59f20d]/5 to-transparent pointer-events-none" />
+                  
+                  <div className="relative z-10 flex flex-col items-center gap-2">
+                    <div className="text-sm font-black text-[#59f20d] uppercase tracking-[0.2em]">Total Daily Calories</div>
+                    <div className="text-6xl font-black text-white tabular-nums drop-shadow-2xl">{calculateMaintenance.toLocaleString()}</div>
+                    <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">سعرة حرارية يومياً</div>
+                  </div>
+                </div>
+
+                {/* Macros Breakdown */}
+                <div className="grid grid-cols-3 gap-3">
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="p-5 rounded-3xl bg-zinc-900/50 border border-white/5 flex flex-col items-center gap-1"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-1">
+                      <Zap className="w-4 h-4" />
+                    </div>
+                    <div className="text-xl font-black text-white">{calculateMacros.protein}g</div>
+                    <div className="text-[10px] font-black text-zinc-500 uppercase tracking-wide">بروتين</div>
+                  </motion.div>
+
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="p-5 rounded-3xl bg-zinc-900/50 border border-white/5 flex flex-col items-center gap-1"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center mb-1">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                    <div className="text-xl font-black text-white">{calculateMacros.carbs}g</div>
+                    <div className="text-[10px] font-black text-zinc-500 uppercase tracking-wide">كارب</div>
+                  </motion.div>
+
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="p-5 rounded-3xl bg-zinc-900/50 border border-white/5 flex flex-col items-center gap-1"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center mb-1">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div className="text-xl font-black text-white">{calculateMacros.fats}g</div>
+                    <div className="text-[10px] font-black text-zinc-500 uppercase tracking-wide">دهون</div>
+                  </motion.div>
                 </div>
               </div>
 

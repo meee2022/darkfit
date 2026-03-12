@@ -126,6 +126,11 @@ export const createOrUpdateProfile = mutation({
     trainingLocation: v.optional(
       v.union(v.literal("home"), v.literal("gym"), v.literal("both"))
     ),
+    targetWeight: v.optional(v.number()),
+    calories: v.optional(v.number()),
+    protein: v.optional(v.number()),
+    carbs: v.optional(v.number()),
+    fats: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);

@@ -46,6 +46,9 @@ const applicationTables = {
     }))),
     heartRate: v.optional(v.number()),
     calories: v.optional(v.number()),
+    protein: v.optional(v.number()),
+    carbs: v.optional(v.number()),
+    fats: v.optional(v.number()),
     energy: v.optional(v.number()),
     membershipType: v.optional(v.string()), // e.g., "عضو سوبر", "عضو عادي"
     memberSince: v.optional(v.string()), // e.g., "2023"
