@@ -1,5 +1,6 @@
 // src/components/AdminPanel.tsx
 import React, { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
@@ -238,8 +239,8 @@ function Confirm({ open, title, desc, onCancel, onConfirm }: any) {
 }
 function Modal({ open, title, children, onClose }: any) {
   if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-[250] bg-black/80 backdrop-blur-[3px] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-[3px] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto flex flex-col rounded-3xl border border-[#59f20d]/40 bg-[#0a0d08]/95 shadow-[0_30px_120px_-60px_rgba(0,0,0,1)]">
         <div className="flex-shrink-0 px-4 py-3 sm:px-5 sm:py-4 flex items-center justify-between border-b border-slate-800 bg-gradient-to-r from-slate-950 via-slate-950 to-slate-900 sticky top-0 z-10">
           <div className="text-sm sm:text-base font-black text-slate-50">
@@ -256,7 +257,8 @@ function Modal({ open, title, children, onClose }: any) {
         </div>
         <div className="flex-1 p-4 sm:p-6 bg-[#0a0d08]/95 overflow-y-auto">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -299,7 +301,7 @@ export function AdminPanel() {
         </div>
         <div className="text-center">
           <h1 className="text-xl font-black">لوحة الإدارة</h1>
-          <p className="text-xs text-[#59f20d]">Gym Pro · Admin</p>
+          <p className="text-xs text-[#59f20d]">DARKFIT · Admin</p>
         </div>
         <div className="relative">
           <div className="w-14 h-14 rounded-full border-3 border-[#59f20d] p-0.5">
@@ -1386,6 +1388,8 @@ function FoodsAdmin() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toDelete, setToDelete] = useState<any>(null);
   const seedFoodsMutation = useMutation(api.sampleData.seedFoods);
+  const seedArabicFoods = useMutation(api.nutrition.seedArabicFoods);
+  const [seedingArabic, setSeedingArabic] = useState(false);
 
   const runFoodsSeed = async () => {
     try {
@@ -1407,6 +1411,7 @@ function FoodsAdmin() {
     proteinPer100g: "",
     carbsPer100g: "",
     fatPer100g: "",
+    mealType: "lunch",
     fiber: "",
     sugar: "",
     sodium: "",
@@ -1439,6 +1444,7 @@ function FoodsAdmin() {
       proteinPer100g: "",
       carbsPer100g: "",
       fatPer100g: "",
+      mealType: "lunch",
       fiber: "",
       sugar: "",
       sodium: "",
@@ -1456,6 +1462,7 @@ function FoodsAdmin() {
       nameAr: row.nameAr ?? "",
       category: row.category ?? "",
       categoryAr: row.categoryAr ?? "",
+      mealType: row.mealType ?? "lunch",
       caloriesPer100g: String(row.caloriesPer100g ?? ""),
       proteinPer100g: String(row.proteinPer100g ?? ""),
       carbsPer100g: String(row.carbsPer100g ?? ""),
@@ -1502,6 +1509,7 @@ function FoodsAdmin() {
         nameAr: form.nameAr,
         category: form.category,
         categoryAr: form.categoryAr,
+        mealType: form.mealType || "lunch",
         caloriesPer100g: Number(form.caloriesPer100g),
         proteinPer100g: Number(form.proteinPer100g),
         carbsPer100g: Number(form.carbsPer100g),
@@ -1586,6 +1594,23 @@ function FoodsAdmin() {
                   setForm((p: any) => ({ ...p, category: e.target.value }))
                 }
               />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Field label="نوع الوجبة *">
+              <select
+                className="input h-[42px] bg-[#0a0d08] border border-slate-800 text-white rounded-xl px-3"
+                value={form.mealType}
+                onChange={(e) =>
+                  setForm((p: any) => ({ ...p, mealType: e.target.value }))
+                }
+              >
+                <option value="breakfast">فطور</option>
+                <option value="lunch">غداء</option>
+                <option value="dinner">عشاء</option>
+                <option value="snack">سناك</option>
+              </select>
             </Field>
           </div>
 
@@ -1884,6 +1909,26 @@ function FoodsAdmin() {
             className="btn-secondary whitespace-nowrap !bg-blue-500/10 !text-blue-400 !border-blue-500/30 hover:!bg-blue-500/20"
           >
             🌐 استيراد من الإنترنت
+          </button>
+
+          <button
+            onClick={async () => {
+              setSeedingArabic(true);
+              try {
+                const r: any = await seedArabicFoods({});
+                toast.success(`✅ تم استيراد ${r.addedCount} أطباق عربية صحية`);
+              } catch (e: any) {
+                console.error("Arabic Seed Error:", e);
+                toast.error(e?.message || "فشل الاستيراد");
+                if (!e?.message) alert("Error: " + String(e));
+              } finally {
+                setSeedingArabic(false);
+              }
+            }}
+            disabled={seedingArabic}
+            className="btn-secondary whitespace-nowrap !bg-[#59f20d]/10 !text-[#59f20d] !border-[#59f20d]/30 hover:!bg-[#59f20d]/20 transition disabled:opacity-50"
+          >
+            {seedingArabic ? "جاري الاستيراد..." : "🇸🇦 استيراد أكلات عربية صحية"}
           </button>
 
           <button onClick={runFoodsSeed} className="btn-secondary">
@@ -2320,10 +2365,98 @@ function PlansAdmin() {
         title={editing ? "تعديل خطة غذائية" : "إضافة خطة غذائية"}
         onClose={() => setOpenForm(false)}
       >
-        {/* نموذج الخطة كما هو – لم نغيّر الكلاسات الداخلية لأنه أصلاً واضح داخل مودال أبيض */}
-        {/* أبقِ نفس الكود الذي أرسلته للـform بالكامل هنا */}
-        {/* (من <form onSubmit={save} ...> حتى </form>) */}
-        {/* تقدر تنسخ بلوك الفورم القديم هنا بدون تعديل */}
+        {/* نموذج الخطة */}
+        <form onSubmit={save} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">اسم الخطة بالعربي</label>
+              <input required className="input w-full" value={form.nameAr} onChange={e => setForm({...form, nameAr: e.target.value})} />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">الاسم بالإنجليزي</label>
+              <input required className="input w-full" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">الهدف/الفئة</label>
+              <select className="input w-full" value={form.targetGroup} onChange={e => setForm({...form, targetGroup: e.target.value})}>
+                <option value="general">عام</option>
+                <option value="diabetes">مرضى السكري</option>
+                <option value="seniors">كبار السن</option>
+                <option value="children">الأطفال</option>
+              </select>
+            </div>
+            <div className="flex items-center mt-6">
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input type="checkbox" checked={form.isActive} onChange={e => setForm({...form, isActive: e.target.checked})} className="rounded border-slate-600 bg-transparent" />
+                تفعيل الخطة
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">وصف الخطة بالعربي</label>
+            <textarea required className="input w-full h-20" value={form.descriptionAr} onChange={e => setForm({...form, descriptionAr: e.target.value})} />
+          </div>
+
+          {/* Meals Section */}
+          <div className="space-y-4 mt-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white">الوجبات</h3>
+              <button type="button" onClick={addMeal} className="text-xs text-[#59f20d] hover:underline">+ إضافة وجبة</button>
+            </div>
+            
+            {form.meals.map((meal: any, mIdx: number) => (
+              <div key={mIdx} className="bg-[#0a0d08] border border-slate-800 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-semibold text-slate-300">وجبة {mIdx + 1}</h4>
+                  <button type="button" onClick={() => removeMeal(mIdx)} className="text-xs text-rose-500 hover:underline">حذف الوجبة</button>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div>
+                    <input placeholder="اسم الوجبة (عربي)" required className="input w-full text-xs" value={meal.nameAr} onChange={e => updateMealField(mIdx, "nameAr", e.target.value)} />
+                  </div>
+                  <div>
+                    <input placeholder="الاسم (انجليزي)" required className="input w-full text-xs" value={meal.name} onChange={e => updateMealField(mIdx, "name", e.target.value)} />
+                  </div>
+                  <div>
+                    <input placeholder="الوقت (مثال: 08:00 AM)" required className="input w-full text-xs" value={meal.time} onChange={e => updateMealField(mIdx, "time", e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {meal.foods.map((food: any, fIdx: number) => (
+                    <div key={fIdx} className="flex items-end gap-2 bg-slate-900/50 p-2 rounded-xl border border-slate-800">
+                      <div className="flex-1 grid grid-cols-3 sm:grid-cols-6 gap-2">
+                        <input placeholder="عنصر (عربي)" required className="input w-full text-xs" value={food.nameAr} onChange={e => updateFoodField(mIdx, fIdx, "nameAr", e.target.value)} />
+                        <input placeholder="(انجليزي)" className="input w-full text-xs" value={food.name} onChange={e => updateFoodField(mIdx, fIdx, "name", e.target.value)} />
+                        <input placeholder="الكمية" required className="input w-full text-xs" value={food.quantity} onChange={e => updateFoodField(mIdx, fIdx, "quantity", e.target.value)} />
+                        <input type="number" placeholder="سعرات" required className="input w-full text-xs" value={food.calories || ""} onChange={e => updateFoodField(mIdx, fIdx, "calories", e.target.value)} />
+                        <input type="number" placeholder="بروتين" className="input w-full text-xs" value={food.protein || ""} onChange={e => updateFoodField(mIdx, fIdx, "protein", e.target.value)} />
+                        <input type="number" placeholder="كارب" className="input w-full text-xs" value={food.carbs || ""} onChange={e => updateFoodField(mIdx, fIdx, "carbs", e.target.value)} />
+                      </div>
+                      <button type="button" onClick={() => removeFoodRow(mIdx, fIdx)} className="p-2 text-rose-500 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 rounded-xl transition">
+                        حذف
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => addFoodRow(mIdx)} className="text-xs text-sky-400 hover:underline mt-2 inline-block">+ عنصر غذائي</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-4 border-t border-slate-800 flex justify-end gap-3">
+            <button type="button" onClick={() => setOpenForm(false)} className="btn-secondary">إلغاء</button>
+            <button type="submit" className="btn-primary text-black">
+              {editing ? "حفظ التعديلات" : "إضافة الخطة"}
+            </button>
+          </div>
+        </form>
+
       </Modal>
 
       {/* الشريط العلوي */}

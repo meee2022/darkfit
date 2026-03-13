@@ -197,6 +197,80 @@ export const checkAdminStatus = query({
 });
 
 /* =========================
+   PUBLIC: CHECK COACH
+========================= */
+
+export const checkCoachStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return false;
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .first();
+
+    return !!(
+      profile &&
+      ((profile as any).role === "coach" ||
+        (profile as any).role === "admin" ||
+        (profile as any).isAdmin === true)
+    );
+  },
+});
+
+/* =========================
+   COACH: GET MY CLIENTS
+========================= */
+
+export const getMyCoachClients = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const me = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .first();
+
+    if (!me) return [];
+    const isCoach =
+      (me as any).role === "coach" ||
+      (me as any).role === "admin" ||
+      (me as any).isAdmin === true;
+    if (!isCoach) return [];
+
+    const links = await ctx.db
+      .query("coachClients")
+      .withIndex("by_coach", (q: any) => q.eq("coachProfileId", me._id))
+      .collect();
+
+    const clients = await Promise.all(
+      links.map(async (link: any) => {
+        const client = await ctx.db.get(link.clientProfileId);
+        return client
+          ? {
+              _id: (client as any)._id,
+              name: (client as any).name || "",
+              email: (client as any).email || "",
+              gender: (client as any).gender,
+              age: (client as any).age,
+              calories: (client as any).calories,
+              protein: (client as any).protein,
+              carbs: (client as any).carbs,
+              fats: (client as any).fats,
+            }
+          : null;
+      })
+    );
+
+    return clients.filter(Boolean);
+  },
+});
+
+/* =========================
    PUBLIC: BMI
 ========================= */
 
@@ -544,6 +618,10 @@ export const listAllProfiles = query({
       weight: p.weight,
       height: p.height,
       goal: p.goal,
+      calories: p.calories,
+      protein: p.protein,
+      carbs: p.carbs,
+      fats: p.fats,
       isAdmin: p.isAdmin || false,
       role: p.role || "user",
     }));

@@ -9,6 +9,7 @@ export type SectionId =
   | "health"
   | "plans"
   | "coachPlans"
+  | "coachDashboard"
   | "admin"
   | "fitbot"
   | "profile"

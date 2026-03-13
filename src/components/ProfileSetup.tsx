@@ -138,7 +138,7 @@ export function ProfileSetup() {
     initial: { opacity: 0, x: 20, scale: 0.95 },
     animate: { opacity: 1, x: 0, scale: 1 },
     exit: { opacity: 0, x: -20, scale: 0.95 },
-    transition: { duration: 0.4, ease: "circOut" }
+    transition: { duration: 0.4, ease: "circOut" as const }
   };
 
   return (

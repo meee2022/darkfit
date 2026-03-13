@@ -1133,7 +1133,22 @@ export const createUserNutritionPlan = mutation({
     targetFat: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError("يجب تسجيل الدخول أولاً");
+
+    const me = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .first();
+
+    const isCoachOrAdmin =
+      me &&
+      ((me as any).isAdmin === true ||
+        (me as any).role === "admin" ||
+        (me as any).role === "coach");
+
+    if (!isCoachOrAdmin) throw new ConvexError("ليس لديك صلاحية إنشاء خطة غذائية");
+
 
     // Check if client exists
     const client = await ctx.db.get(args.clientProfileId);
@@ -1205,7 +1220,7 @@ export const getMyNutritionPlan = query({
                 if (!foodData || foodData === null) return null;
 
                 // Type guard to ensure we're working with a food item
-                if (!('caloriesPer100' in foodData)) return null;
+                if (!('caloriesPer100g' in foodData)) return null;
 
                 const multiplier = food.quantity / 100;
                 return {
@@ -1214,10 +1229,10 @@ export const getMyNutritionPlan = query({
                   foodNameAr: (foodData as any).nameAr,
                   quantity: food.quantity,
                   unit: food.unit || "g",
-                  calories: Math.round(((foodData as any).caloriesPer100 || 0) * multiplier),
-                  protein: Math.round(((foodData as any).proteinPer100 || 0) * multiplier),
-                  carbs: Math.round(((foodData as any).carbsPer100 || 0) * multiplier),
-                  fat: Math.round(((foodData as any).fatPer100 || 0) * multiplier),
+                  calories: Math.round(((foodData as any).caloriesPer100g || 0) * multiplier),
+                  protein: Math.round(((foodData as any).proteinPer100g || 0) * multiplier),
+                  carbs: Math.round(((foodData as any).carbsPer100g || 0) * multiplier),
+                  fat: Math.round(((foodData as any).fatPer100g || 0) * multiplier),
                   imageUrl: (foodData as any).imageUrl,
                 };
               })
@@ -1242,5 +1257,393 @@ export const getMyNutritionPlan = query({
       ...plan,
       days: enrichedDays,
     };
+  },
+});
+
+/**
+ * Add food to my nutrition plan (client can add extra food to any meal)
+ */
+export const addFoodToMyPlan = mutation({
+  args: {
+    dayNumber: v.number(),
+    mealIndex: v.number(),
+    foodId: v.id("foods"),
+    quantity: v.number(), // grams
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .first();
+
+    if (!profile) throw new ConvexError("الملف الشخصي غير موجود");
+
+    const plan = await ctx.db
+      .query("userNutritionPlans")
+      .withIndex("by_client", (q) => q.eq("clientProfileId", profile._id))
+      .first();
+
+    if (!plan) throw new ConvexError("لا توجد خطة غذائية مخصصة لك");
+
+    const food = await ctx.db.get(args.foodId);
+    if (!food) throw new ConvexError("الطعام غير موجود");
+
+    const grams = Math.max(1, args.quantity);
+
+    // Deep-clone the days array
+    const days = JSON.parse(JSON.stringify(plan.days || [])) as any[];
+
+    const dayIdx = days.findIndex((d: any) => d.dayNumber === args.dayNumber);
+    if (dayIdx < 0) throw new ConvexError("اليوم غير موجود في الخطة");
+
+    const meals = days[dayIdx].meals || [];
+    if (args.mealIndex < 0 || args.mealIndex >= meals.length) {
+      throw new ConvexError("الوجبة غير موجودة");
+    }
+
+    const existingIdx = meals[args.mealIndex].foods.findIndex(
+      (f: any) => String(f.foodId) === String(args.foodId)
+    );
+
+    if (existingIdx >= 0) {
+      // Increase quantity if same food already exists
+      meals[args.mealIndex].foods[existingIdx].quantity += grams;
+    } else {
+      meals[args.mealIndex].foods.push({
+        foodId: args.foodId,
+        quantity: grams,
+        unit: "g",
+      });
+    }
+
+    days[dayIdx].meals = meals;
+
+    await ctx.db.patch(plan._id, { days, updatedAt: Date.now() });
+    return { ok: true };
+  },
+});
+
+/**
+ * Seed shared Arabic foods library
+ */
+export const seedArabicFoods = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Only admins or coaches can seed
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError("يجب تسجيل الدخول أولاً");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .first();
+
+    if (!profile || (!profile.isAdmin && profile.role !== "coach")) {
+      throw new ConvexError("ليس لديك صلاحية لإجراء هذه العملية");
+    }
+
+    const foods = [
+      {
+        name: "Foul Medames",
+        nameAr: "فول مدمس",
+        category: "Legumes",
+        categoryAr: "بقوليات",
+        caloriesPer100g: 110,
+        proteinPer100g: 8,
+        carbsPer100g: 15,
+        fatPer100g: 1,
+        mealType: "breakfast" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Boiled Chickpeas",
+        nameAr: "حمص مسلوق",
+        category: "Legumes",
+        categoryAr: "بقوليات",
+        caloriesPer100g: 164,
+        proteinPer100g: 9,
+        carbsPer100g: 27,
+        fatPer100g: 2.6,
+        mealType: "snack" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Lentil Soup",
+        nameAr: "شوربة عدس",
+        category: "Soups",
+        categoryAr: "شوربات",
+        caloriesPer100g: 65,
+        proteinPer100g: 4.5,
+        carbsPer100g: 9,
+        fatPer100g: 1.5,
+        mealType: "lunch" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Tabbouleh",
+        nameAr: "تبولة",
+        category: "Salads",
+        categoryAr: "سلطات",
+        caloriesPer100g: 120,
+        proteinPer100g: 2,
+        carbsPer100g: 10,
+        fatPer100g: 8,
+        mealType: "snack" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: false,
+      },
+      {
+        name: "Fattoush",
+        nameAr: "فتوش",
+        category: "Salads",
+        categoryAr: "سلطات",
+        caloriesPer100g: 90,
+        proteinPer100g: 1.5,
+        carbsPer100g: 12,
+        fatPer100g: 4,
+        mealType: "snack" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Grilled Shish Tawook",
+        nameAr: "شيش طاووك مشوي",
+        category: "Proteins",
+        categoryAr: "بروتينات",
+        caloriesPer100g: 150,
+        proteinPer100g: 25,
+        carbsPer100g: 1,
+        fatPer100g: 5,
+        mealType: "lunch" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Baba Ganoush",
+        nameAr: "بابا غنوج",
+        category: "Appetizers",
+        categoryAr: "مقبلات",
+        caloriesPer100g: 100,
+        proteinPer100g: 1.5,
+        carbsPer100g: 8,
+        fatPer100g: 7,
+        mealType: "snack" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Labneh",
+        nameAr: "لبنة",
+        category: "Dairy",
+        categoryAr: "ألبان",
+        caloriesPer100g: 150,
+        proteinPer100g: 7,
+        carbsPer100g: 4,
+        fatPer100g: 12,
+        mealType: "breakfast" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Arabic Bread (Whole Wheat)",
+        nameAr: "خبز أسمر",
+        category: "Carbs",
+        categoryAr: "نشويات",
+        caloriesPer100g: 250,
+        proteinPer100g: 9,
+        carbsPer100g: 50,
+        fatPer100g: 1.5,
+        mealType: "breakfast" as const,
+        isDiabeticFriendly: false,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Dates",
+        nameAr: "تمر",
+        category: "Fruits",
+        categoryAr: "فواكه",
+        caloriesPer100g: 280,
+        proteinPer100g: 2.5,
+        carbsPer100g: 75,
+        fatPer100g: 0.4,
+        mealType: "snack" as const,
+        isDiabeticFriendly: false,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Mujadara",
+        nameAr: "مجدرة برغل",
+        category: "Main Dish",
+        categoryAr: "أطباق رئيسية",
+        caloriesPer100g: 170,
+        proteinPer100g: 6,
+        carbsPer100g: 30,
+        fatPer100g: 3,
+        mealType: "lunch" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Grilled Kofta (Lean)",
+        nameAr: "كفتة مشوية (قليلة الدسم)",
+        category: "Proteins",
+        categoryAr: "بروتينات",
+        caloriesPer100g: 210,
+        proteinPer100g: 20,
+        carbsPer100g: 2,
+        fatPer100g: 14,
+        mealType: "lunch" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Okra Stew (Bamia)",
+        nameAr: "بامية (بدون لحم دسم)",
+        category: "Vegetables",
+        categoryAr: "خضروات",
+        caloriesPer100g: 70,
+        proteinPer100g: 2,
+        carbsPer100g: 12,
+        fatPer100g: 2,
+        mealType: "lunch" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Grilled Sea Bream",
+        nameAr: "سمك دنيس مشوي",
+        category: "Proteins",
+        categoryAr: "بروتينات",
+        caloriesPer100g: 120,
+        proteinPer100g: 20,
+        carbsPer100g: 0,
+        fatPer100g: 4,
+        mealType: "lunch" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Grilled Halloumi",
+        nameAr: "حلوم مشوي",
+        category: "Dairy",
+        categoryAr: "ألبان",
+        caloriesPer100g: 320,
+        proteinPer100g: 21,
+        carbsPer100g: 2,
+        fatPer100g: 25,
+        mealType: "breakfast" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Stuffed Grape Leaves (Oil)",
+        nameAr: "ورق عنب بالزيت",
+        category: "Appetizers",
+        categoryAr: "مقبلات",
+        caloriesPer100g: 160,
+        proteinPer100g: 2,
+        carbsPer100g: 25,
+        fatPer100g: 6,
+        mealType: "lunch" as const,
+        isDiabeticFriendly: false,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Molokhia",
+        nameAr: "ملوخية",
+        category: "Vegetables",
+        categoryAr: "خضروات",
+        caloriesPer100g: 50,
+        proteinPer100g: 4,
+        carbsPer100g: 5,
+        fatPer100g: 2,
+        mealType: "lunch" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Harees",
+        nameAr: "هريس",
+        category: "Main Dish",
+        categoryAr: "أطباق رئيسية",
+        caloriesPer100g: 140,
+        proteinPer100g: 8,
+        carbsPer100g: 20,
+        fatPer100g: 4,
+        mealType: "lunch" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Kabsa Chicken (Grilled)",
+        nameAr: "كبسة دجاج (مشوي)",
+        category: "Main Dish",
+        categoryAr: "أطباق رئيسية",
+        caloriesPer100g: 180,
+        proteinPer100g: 10,
+        carbsPer100g: 25,
+        fatPer100g: 5,
+        mealType: "lunch" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+      {
+        name: "Falafel (Baked)",
+        nameAr: "فلافل (مخبوزة)",
+        category: "Legumes",
+        categoryAr: "بقوليات",
+        caloriesPer100g: 200,
+        proteinPer100g: 10,
+        carbsPer100g: 25,
+        fatPer100g: 8,
+        mealType: "breakfast" as const,
+        isDiabeticFriendly: true,
+        isSeniorFriendly: true,
+        isChildFriendly: true,
+      },
+    ];
+
+    let addedCount = 0;
+    for (const food of foods) {
+      // Check if already exists to avoid duplicates
+      const existing = await ctx.db
+        .query("foods")
+        .filter((q: any) => q.eq(q.field("name"), food.name))
+        .first();
+
+      if (!existing) {
+        await ctx.db.insert("foods", {
+          ...food,
+          barcode: food.name, // Temporary identifier
+        });
+        addedCount++;
+      }
+    }
+
+    return { ok: true, addedCount };
   },
 });

@@ -54,7 +54,7 @@ function safeTr(t: any, key: string, fallback: string) {
   }
 }
 
-/** ===== Modern Stat Card with Gradient & Progress ===== */
+/** ===== Premium Stat Card ===== */
 
 function ModernStatCard({
   icon,
@@ -73,98 +73,139 @@ function ModernStatCard({
   progress?: number;
   unit?: string;
 }) {
-  const { language } = useLanguage();
-  const isAr = language === "ar";
-  
-  // Radial progress constants
-  const radius = 16;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (Math.min(100, progress) / 100) * circumference;
+  // Resolve per-card accent color from iconColor class
+  const accentHex = iconColor.includes("emerald")
+    ? "#10b981"
+    : iconColor.includes("orange")
+    ? "#f97316"
+    : iconColor.includes("sky")
+    ? "#38bdf8"
+    : iconColor.includes("indigo")
+    ? "#818cf8"
+    : iconColor.includes("rose")
+    ? "#fb7185"
+    : "#59f20d";
+
+  // SVG ring config
+  const RING_SIZE = 84;
+  const R = 34;
+  const STROKE = 5;
+  const circ = 2 * Math.PI * R;
+  const clamped = Math.min(100, Math.max(0, progress));
+  const dashOffset = circ - (clamped / 100) * circ;
+
+  const showRing = variant === "radial" || variant === "progress";
 
   return (
-    <div className="group relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-white/[0.08] to-white/[0.03] border border-white/10 hover:border-[#59f20d]/40 transition-all duration-500 p-4 sm:p-5 flex flex-col justify-between items-start text-start min-h-[130px] shadow-2xl backdrop-blur-md hover:shadow-[#59f20d]/10 hover:-translate-y-1">
-      {/* Subtle background glow that follows hover */}
-      <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#59f20d]/5 rounded-full blur-3xl group-hover:bg-[#59f20d]/15 transition-all duration-700" />
-      
-      {/* Upper row: Icon (and Radial Progress) */}
-      <div className="w-full flex justify-between items-center z-10">
-        {variant !== "radial" ? (
-          <div
-            className={cn(
-              "w-10 h-10 rounded-2xl flex items-center justify-center border border-white/5 shrink-0 shadow-xl backdrop-blur-xl group-hover:scale-110 transition-transform duration-500",
-              iconColor
-            )}
+    <div
+      className="group relative overflow-hidden rounded-3xl border border-white/[0.07] bg-gradient-to-b from-white/[0.07] to-black/50 backdrop-blur-xl flex flex-col items-center justify-center gap-2 p-4 sm:p-5 min-h-[150px] text-center cursor-default select-none transition-all duration-500 hover:-translate-y-1.5 hover:border-white/20"
+      style={{ boxShadow: `0 2px 40px -12px ${accentHex}55` }}
+    >
+      {/* Ambient glow blob */}
+      <div
+        className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full blur-2xl opacity-20 group-hover:opacity-50 transition-opacity duration-700 pointer-events-none"
+        style={{ background: accentHex }}
+      />
+
+      {/* Top shimmer line */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+
+      {/* Ring or icon square */}
+      {showRing ? (
+        <div
+          className="relative flex items-center justify-center z-10"
+          style={{ width: RING_SIZE, height: RING_SIZE }}
+        >
+          <svg
+            width={RING_SIZE}
+            height={RING_SIZE}
+            viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+            className="-rotate-90"
           >
-            {icon}
+            {/* Track */}
+            <circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={R}
+              fill="none"
+              stroke="rgba(255,255,255,0.06)"
+              strokeWidth={STROKE}
+            />
+            {/* Progress arc */}
+            <circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={R}
+              fill="none"
+              stroke={accentHex}
+              strokeWidth={STROKE}
+              strokeDasharray={circ}
+              strokeDashoffset={dashOffset}
+              strokeLinecap="round"
+              style={{
+                transition: "stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1)",
+                filter: `drop-shadow(0 0 5px ${accentHex})`,
+              }}
+            />
+          </svg>
+          {/* Icon inside ring */}
+          <div
+            className="absolute inset-0 flex items-center justify-center transition-transform duration-500 group-hover:scale-110"
+            style={{ color: accentHex }}
+          >
+            <div className="opacity-90 group-hover:opacity-100">{icon}</div>
           </div>
-        ) : (
-          <div className="relative w-12 h-12 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-            {/* Radial Progress Ring */}
-            <svg className="w-full h-full -rotate-90">
-              <circle
-                cx="24"
-                cy="24"
-                r={radius}
-                className="stroke-white/5 fill-none"
-                strokeWidth="3.5"
-              />
-              <circle
-                cx="24"
-                cy="24"
-                r={radius}
-                className="stroke-[#59f20d] fill-none"
-                strokeWidth="3.5"
-                strokeDasharray={circumference}
-                style={{ 
-                  strokeDashoffset: offset,
-                  transition: "stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)" 
-                }}
-                strokeLinecap="round"
-              />
-            </svg>
-            {/* Icon inside the ring */}
-            <div className={cn(
-              "absolute inset-0 flex items-center justify-center rounded-full p-2.5",
-              iconColor.split(" ")[0] // Take the background part for the inner icon contrast if needed, or just keep it simple
-            )}>
-              <div className="scale-[0.85] opacity-80 group-hover:opacity-100 transition-opacity">
-                {icon}
-              </div>
-            </div>
-          </div>
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "w-14 h-14 rounded-2xl flex items-center justify-center border shadow-xl transition-transform duration-500 group-hover:scale-110 z-10",
+            iconColor
+          )}
+        >
+          <div className="scale-125">{icon}</div>
+        </div>
+      )}
+
+      {/* Value + Unit */}
+      <div className="flex items-baseline justify-center gap-1 z-10 leading-none mt-1">
+        <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          {value}
+        </span>
+        {unit && (
+          <span
+            className="text-[10px] font-black uppercase tracking-widest"
+            style={{ color: accentHex }}
+          >
+            {unit}
+          </span>
         )}
       </div>
 
-      {/* Main Content: Value & Label */}
-      <div className="w-full flex flex-col items-start mt-4 z-10">
-        <div className="flex items-baseline gap-1.5 overflow-hidden w-full">
-          <p className="text-2xl sm:text-3xl font-black text-white tracking-tighter leading-none group-hover:text-neon-400 transition-colors duration-300">
-            {value}
-          </p>
-          {unit && (
-            <span className="text-xs font-black text-[#59f20d] bg-[#59f20d]/10 px-1.5 py-0.5 rounded-md italic uppercase tracking-tighter">
-              {unit}
-            </span>
-          )}
-        </div>
-        <p className="text-[10px] sm:text-[11px] text-white/40 font-black mt-2.5 uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis w-full">
-          {label}
-        </p>
-      </div>
-      
-      {/* Progress variation: Bottom Bar */}
+      {/* Label */}
+      <p className="text-[10px] sm:text-[11px] text-white/40 font-semibold uppercase tracking-widest z-10 leading-tight px-1">
+        {label}
+      </p>
+
+      {/* Thin progress bar below label for "progress" variant */}
       {variant === "progress" && (
-        <div className="w-full mt-4 h-1.5 bg-white/5 rounded-full overflow-hidden z-10">
-          <div 
-            className="h-full bg-gradient-to-r from-emerald-500 via-[#59f20d] to-emerald-400 transition-all duration-1500 ease-out"
-            style={{ width: `${progress}%` }}
+        <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden z-10">
+          <div
+            className="h-full rounded-full transition-all duration-[1400ms] ease-out"
+            style={{
+              width: `${clamped}%`,
+              background: accentHex,
+              boxShadow: `0 0 8px ${accentHex}`,
+            }}
           />
         </div>
       )}
 
-      {/* Premium Glass reflection */}
-      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#59f20d] to-transparent opacity-0 scale-x-0 group-hover:opacity-100 group-hover:scale-x-100 transition-all duration-700 origin-center" />
+      {/* Bottom accent line on hover */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-[2px] opacity-0 scale-x-0 group-hover:opacity-100 group-hover:scale-x-100 transition-all duration-700 origin-center pointer-events-none"
+        style={{ background: `linear-gradient(to right, transparent, ${accentHex}, transparent)` }}
+      />
     </div>
   );
 }
@@ -264,7 +305,7 @@ export function Dashboard({
       id: "exercises", 
       title: tr("exercises", "التمارين"), 
       desc: isAr ? "مكتبة شاملة من التمارين المتنوعة لجميع المستويات" : "Comprehensive library of exercises for all levels",
-      img: "/img/darkfit_exercises_1773164750598.png"
+      img: "/img/darkfit_exercises_user.png"
     },
     { 
       id: "workoutGenerator", 
@@ -276,7 +317,7 @@ export function Dashboard({
       id: "nutrition", 
       title: tr("nutrition", "التغذية"), 
       desc: isAr ? "خطط غذائية متكاملة ووصفات صحية لدعم أهدافك" : "Complete nutrition plans and healthy recipes",
-      img: "/img/darkfit_nutrition_1773165016257.png"
+      img: "/img/darkfit_nutrition_user.png"
     },
     { 
       id: "supplements", 
@@ -298,27 +339,21 @@ export function Dashboard({
     },
     { 
       id: "calculator", 
-      title: tr("calculator", "الحاسبات"), 
-      desc: isAr ? "أدوات دقيقة لحساب السعرات والبروتين والوزن المثالي" : "Precise tools for calculating macros and BMI",
-      img: "/img/darkfit_calculator_1773165509531.png"
+      title: tr("calorie_calculator", "حاسبة السعرات"), 
+      desc: isAr ? "احسب احتياجك اليومي بدقة علمية" : "Calculate your daily calorie needs accurately",
+      img: "/img/darkfit_ai_user.png"
     },
     { 
       id: "plans", 
       title: tr("plans", "خططي"), 
       desc: isAr ? "إدارة جداول تمارينك وخططك التدريبية المخصصة" : "Manage your custom workout schedules and plans",
-      img: "/img/darkfit_generator_1773165550431.png"
+      img: "/img/my plan.png"
     },
     { 
       id: "fitbot", 
       title: tr("fitbot", "المساعد الذكي"), 
       desc: isAr ? "اطرح أسئلتك على مدربك الذكي واحصل على نصائح فورية" : "Ask your AI fitness coach for instant advice",
-      img: "/img/darkfit_health_1773165433203.png"
-    },
-    { 
-      id: "profile", 
-      title: tr("profile", "الملف الشخصي"), 
-      desc: isAr ? "تعديل بياناتك ومتابعة إحصائياتك الشخصية وتقدمك" : "Update your profile and track your stats",
-      img: "/img/darkfit_nutrition_1773165016257.png"
+      img: "/ai_assistant_banner_darkfit.png"
     }
   ], [isAr, language]);
 
@@ -427,10 +462,10 @@ export function Dashboard({
               </div>
             </div>
 
-            {/* Stats Grid - High Fidelity Cards */}
+            {/* Stats Grid - Premium Ring Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mt-2 w-full">
               <ModernStatCard
-                icon={<TrendingUp className="w-4 h-4" />}
+                icon={<TrendingUp className="w-5 h-5" />}
                 label={tr("completion", "نسبة الإنجاز")}
                 value={`${completion}%`}
                 iconColor="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
@@ -438,33 +473,39 @@ export function Dashboard({
                 progress={completion}
               />
               <ModernStatCard
-                icon={<Flame className="w-4 h-4" />}
+                icon={<Flame className="w-5 h-5" />}
                 label={tr("burned_calories", "سعرة محروقة")}
-                value={totalCalories}
+                value={totalCalories > 0 ? totalCalories.toLocaleString() : 0}
                 unit="kcal"
                 iconColor="bg-orange-500/20 text-orange-400 border border-orange-500/30"
                 variant="radial"
-                progress={totalCalories > 0 ? 75 : 0} 
+                progress={totalCalories > 0 ? Math.min(90, (totalCalories / 3000) * 100) : 0}
               />
               <ModernStatCard
-                icon={<Timer className="w-4 h-4" />}
+                icon={<Timer className="w-5 h-5" />}
                 label={tr("workout_days", "أيام تمرين")}
                 value={totalSessions}
                 iconColor="bg-sky-500/20 text-sky-400 border border-sky-500/30"
+                variant="radial"
+                progress={totalSessions > 0 ? Math.min(90, (totalSessions / 30) * 100) : 0}
               />
               <ModernStatCard
-                icon={<Dumbbell className="w-4 h-4" />}
+                icon={<Dumbbell className="w-5 h-5" />}
                 label={tr("total_hours", "إجمالي الساعات")}
                 value={totalHours}
                 unit="h"
                 iconColor="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
+                variant="radial"
+                progress={totalHours > 0 ? Math.min(90, (totalHours / 100) * 100) : 0}
               />
               {bmiData && (
                 <ModernStatCard
-                  icon={<HeartPulse className="w-4 h-4" />}
+                  icon={<HeartPulse className="w-5 h-5" />}
                   label={tr("bmi_title", "مؤشر كتلة الجسم")}
                   value={bmiData.bmi}
                   iconColor="bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                  variant="radial"
+                  progress={Math.min(90, Math.max(10, ((parseFloat(bmiData.bmi) - 15) / 25) * 100))}
                 />
               )}
             </div>

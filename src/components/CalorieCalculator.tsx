@@ -269,8 +269,8 @@ export function CalorieCalculator() {
       {/* Big Circular Progress */}
       <div className="flex justify-center py-10 relative">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(89,242,13,0.05),transparent_70%)]" />
-        <div className="relative w-80 h-80">
-          <svg className="absolute inset-0 w-full h-full transform -rotate-90">
+        <div className="relative w-full max-w-[20rem] aspect-square">
+          <svg viewBox="0 0 320 320" className="absolute inset-0 w-full h-full transform -rotate-90">
             <circle cx="160" cy="160" r="140" stroke="#1a1a1a" strokeWidth="24" fill="none" opacity="0.3" />
             <motion.circle
               initial={{ strokeDashoffset: 2 * Math.PI * 140 }}

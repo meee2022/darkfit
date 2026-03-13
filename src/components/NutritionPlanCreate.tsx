@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
@@ -54,10 +54,33 @@ export function NutritionPlanCreate({ clientId, onClose }: { clientId?: Id<"prof
     },
   ]);
 
-  const [targetCalories, setTargetCalories] = useState(2450);
-  const [targetProtein, setTargetProtein] = useState(180);
-  const [targetCarbs, setTargetCarbs] = useState(300);
-  const [targetFat, setTargetFat] = useState(70);
+  const [targetCalories, setTargetCalories] = useState(0);
+  const [targetProtein, setTargetProtein] = useState(0);
+  const [targetCarbs, setTargetCarbs] = useState(0);
+  const [targetFat, setTargetFat] = useState(0);
+
+  useEffect(() => {
+    if (selectedClient && profiles) {
+      const clientProfile = profiles.find((p) => p._id === selectedClient);
+      if (clientProfile) {
+        const cals = clientProfile.calories || 0;
+        setTargetCalories(cals);
+        setTargetProtein(clientProfile.protein || (cals > 0 ? Math.round((cals * 0.3) / 4) : 0));
+        setTargetCarbs(clientProfile.carbs || (cals > 0 ? Math.round((cals * 0.4) / 4) : 0));
+        setTargetFat(clientProfile.fats || (cals > 0 ? Math.round((cals * 0.3) / 9) : 0));
+      } else {
+        setTargetCalories(0);
+        setTargetProtein(0);
+        setTargetCarbs(0);
+        setTargetFat(0);
+      }
+    } else {
+      setTargetCalories(0);
+      setTargetProtein(0);
+      setTargetCarbs(0);
+      setTargetFat(0);
+    }
+  }, [selectedClient, profiles]);
 
   const currentDay = days.find((d) => d.dayNumber === selectedDay) || days[0];
 
@@ -111,10 +134,10 @@ export function NutritionPlanCreate({ clientId, onClose }: { clientId?: Id<"prof
       foodNameAr: food.nameAr || "",
       quantity: 100,
       unit: food.unit || "g",
-      calories: food.caloriesPer100 || 0,
-      protein: food.proteinPer100 || 0,
-      carbs: food.carbsPer100 || 0,
-      fat: food.fatPer100 || 0,
+      calories: food.caloriesPer100g || 0,
+      protein: food.proteinPer100g || 0,
+      carbs: food.carbsPer100g || 0,
+      fat: food.fatPer100g || 0,
     };
 
     setDays(
@@ -184,10 +207,10 @@ export function NutritionPlanCreate({ clientId, onClose }: { clientId?: Id<"prof
                       return {
                         ...f,
                         quantity: newQuantity,
-                        calories: Math.round((food.caloriesPer100 || 0) * multiplier),
-                        protein: Math.round((food.proteinPer100 || 0) * multiplier),
-                        carbs: Math.round((food.carbsPer100 || 0) * multiplier),
-                        fat: Math.round((food.fatPer100 || 0) * multiplier),
+                        calories: Math.round((food.caloriesPer100g || 0) * multiplier),
+                        protein: Math.round((food.proteinPer100g || 0) * multiplier),
+                        carbs: Math.round((food.carbsPer100g || 0) * multiplier),
+                        fat: Math.round((food.fatPer100g || 0) * multiplier),
                       };
                     }
                     return f;
@@ -439,25 +462,25 @@ export function NutritionPlanCreate({ clientId, onClose }: { clientId?: Id<"prof
 
         {/* Meals */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h3 className="text-base font-bold text-white">{isAr ? "الوجبات المخططة" : "Planned Meals"}</h3>
-            <button
-              onClick={() => addMeal("breakfast")}
-              className="text-xs px-3 py-1.5 rounded-lg bg-[#59f20d]/10 text-[#59f20d] border border-[#59f20d]/30 hover:bg-[#59f20d]/20 transition"
-            >
-              + {isAr ? "إضافة طعام" : "Add Food"}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => addMeal("breakfast")} className="text-xs px-2 py-1.5 rounded-lg bg-[#59f20d]/10 text-[#59f20d] border border-[#59f20d]/30 hover:bg-[#59f20d]/20 transition">+ {isAr ? "فطور" : "Breakfast"}</button>
+              <button onClick={() => addMeal("lunch")} className="text-xs px-2 py-1.5 rounded-lg bg-[#59f20d]/10 text-[#59f20d] border border-[#59f20d]/30 hover:bg-[#59f20d]/20 transition">+ {isAr ? "غداء" : "Lunch"}</button>
+              <button onClick={() => addMeal("dinner")} className="text-xs px-2 py-1.5 rounded-lg bg-[#59f20d]/10 text-[#59f20d] border border-[#59f20d]/30 hover:bg-[#59f20d]/20 transition">+ {isAr ? "عشاء" : "Dinner"}</button>
+              <button onClick={() => addMeal("snack")} className="text-xs px-2 py-1.5 rounded-lg bg-[#59f20d]/10 text-[#59f20d] border border-[#59f20d]/30 hover:bg-[#59f20d]/20 transition">+ {isAr ? "سناك" : "Snack"}</button>
+            </div>
           </div>
 
           {currentDay.meals.length === 0 ? (
             <div className="bg-[#1a2318] rounded-2xl p-8 border border-[#2a3528] text-center">
               <div className="text-4xl mb-2">🍽️</div>
-              <p className="text-sm text-zinc-400">{isAr ? "لم تضف أي الطعام بعد" : "No meals added yet"}</p>
+              <p className="text-sm text-zinc-400">{isAr ? "لم تضف أي وجبات بعد" : "No meals added yet"}</p>
               <button
                 onClick={() => addMeal("breakfast")}
                 className="mt-4 px-4 py-2 rounded-xl bg-[#59f20d]/10 text-[#59f20d] border border-[#59f20d]/30 text-sm font-medium hover:bg-[#59f20d]/20 transition"
               >
-                {isAr ? "إضافة طعام" : "Add Food"}
+                + {isAr ? "إضافة وجبة فطور" : "Add Breakfast"}
               </button>
             </div>
           ) : (
@@ -475,16 +498,22 @@ export function NutritionPlanCreate({ clientId, onClose }: { clientId?: Id<"prof
                       <p className="text-xs text-zinc-500">{meal.totalCalories} {isAr ? "سعرة" : "kcal"}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      if (foods && foods.length > 0) {
-                        addFoodToMeal(mealIndex, foods[0]._id);
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        addFoodToMeal(mealIndex, e.target.value as any);
                       }
                     }}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-[#0a0d08] text-zinc-400 border border-[#2a3528] hover:text-[#59f20d] hover:border-[#59f20d]/50 transition"
+                    className="text-xs px-2 py-1.5 rounded-lg bg-[#0a0d08] text-zinc-400 border border-[#2a3528] hover:text-[#59f20d] hover:border-[#59f20d]/50 transition outline-none cursor-pointer w-28 sm:w-auto"
                   >
-                    + {isAr ? "طعام" : "Food"}
-                  </button>
+                    <option value="" disabled>+ {isAr ? "إضافة طعام" : "Add Food"}</option>
+                    {foods?.map((f) => (
+                      <option key={f._id} value={f._id}>
+                        {isAr ? f.nameAr : f.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-2">

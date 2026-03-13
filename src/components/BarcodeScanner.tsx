@@ -18,9 +18,11 @@ interface ScannedFood {
 
 interface BarcodeScannerProps {
     onAddFood?: (food: ScannedFood, mealType: string) => void;
+    triggerLabel?: string;
+    triggerClassName?: string;
 }
 
-export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
+export function BarcodeScanner({ onAddFood, triggerLabel, triggerClassName }: BarcodeScannerProps) {
     const { language } = useLanguage();
     const isAr = language === "ar";
 
@@ -162,10 +164,10 @@ export function BarcodeScanner({ onAddFood }: BarcodeScannerProps) {
             {/* Trigger Button */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 transition text-sm font-semibold"
+                className={triggerClassName ?? "flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 transition text-sm font-semibold"}
             >
                 <ScanLine size={18} />
-                {isAr ? "مسح باركود" : "Scan Barcode"}
+                {triggerLabel ?? (isAr ? "مسح باركود" : "Scan Barcode")}
             </button>
 
             {/* Modal */}

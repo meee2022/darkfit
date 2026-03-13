@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useLanguage } from "../lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
@@ -66,6 +66,12 @@ export function WorkoutGenerator() {
     const [difficulty, setDifficulty] = useState<Difficulty>("all");
     const [gender, setGender] = useState<Gender>("male");
     const [hoveredMuscle, setHoveredMuscle] = useState<{ id: string; name: string } | null>(null);
+    const [workoutStarted, setWorkoutStarted] = useState(false);
+    const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set());
+    const [workoutDone, setWorkoutDone] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const logWorkout = useMutation(api.exercises.logWorkoutSession);
 
     const dbMuscle = useMemo(() => {
         if (!selectedMuscles.length) return undefined;
@@ -211,7 +217,7 @@ export function WorkoutGenerator() {
                             className="space-y-5"
                         >
                             <div className={`${isAr ? "text-right" : "text-left"}`}>
-                                <h2 className="text-xl font-bold text-white">
+                                <h2 className="text-2xl font-black text-white tracking-tight">
                                     {isAr ? "ما هو هدفك؟" : "What's your goal?"}
                                 </h2>
                                 <p className="text-sm text-white/40 mt-1">
@@ -221,38 +227,79 @@ export function WorkoutGenerator() {
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {goals.map((g) => (
-                                    <motion.button
-                                        key={g.id}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => {
-                                            setSelectedGoal(g.id);
-                                            setStep("muscle");
-                                        }}
-                                        className={`
-                      flex items-center gap-4 p-4 rounded-2xl border text-left
-                      bg-[#1c1c1c] border-white/[0.12] transition-all duration-200
-                      ${g.accent}
-                      ${selectedGoal === g.id ? "border-[#59f20d]/50 bg-[#59f20d]/8" : "hover:bg-white/5"}
-                    `}
-                                    >
-                                        <div className={`w-9 h-9 rounded-xl bg-white/[0.08] flex items-center justify-center flex-shrink-0 text-white/80`}>
-                                            {g.icon}
-                                        </div>
-                                        <div className={isAr ? "text-right" : "text-left"}>
-                                            <p className="font-bold text-white text-sm">
-                                                {isAr ? g.labelAr : g.labelEn}
-                                            </p>
-                                            <p className="text-xs text-white/40 mt-0.5">
-                                                {isAr ? g.descAr : g.descEn}
-                                            </p>
-                                        </div>
-                                    </motion.button>
-                                ))}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {goals.map((g) => {
+                                    const gradientMap: Record<Goal, string> = {
+                                        bulk: "from-amber-500/15 to-amber-600/5",
+                                        cut: "from-rose-500/15 to-rose-600/5",
+                                        strength: "from-[#59f20d]/15 to-[#59f20d]/5",
+                                        flexibility: "from-sky-500/15 to-sky-600/5",
+                                    };
+                                    const borderMap: Record<Goal, string> = {
+                                        bulk: "border-amber-500/30",
+                                        cut: "border-rose-500/30",
+                                        strength: "border-[#59f20d]/30",
+                                        flexibility: "border-sky-500/30",
+                                    };
+                                    const glowMap: Record<Goal, string> = {
+                                        bulk: "shadow-[0_0_30px_rgba(245,158,11,0.12)]",
+                                        cut: "shadow-[0_0_30px_rgba(239,68,68,0.12)]",
+                                        strength: "shadow-[0_0_30px_rgba(89,242,13,0.12)]",
+                                        flexibility: "shadow-[0_0_30px_rgba(14,165,233,0.12)]",
+                                    };
+                                    const iconBgMap: Record<Goal, string> = {
+                                        bulk: "bg-amber-500/20 text-amber-400",
+                                        cut: "bg-rose-500/20 text-rose-400",
+                                        strength: "bg-[#59f20d]/20 text-[#59f20d]",
+                                        flexibility: "bg-sky-500/20 text-sky-400",
+                                    };
+                                    const isSelected = selectedGoal === g.id;
+                                    return (
+                                        <motion.button
+                                            key={g.id}
+                                            whileTap={{ scale: 0.97 }}
+                                            whileHover={{ scale: 1.02 }}
+                                            onClick={() => {
+                                                setSelectedGoal(g.id);
+                                                setStep("muscle");
+                                            }}
+                                            className={`
+                                                relative flex items-center gap-4 p-5 rounded-[1.25rem] border text-left
+                                                bg-gradient-to-br ${gradientMap[g.id]}
+                                                backdrop-blur-xl overflow-hidden
+                                                transition-all duration-300
+                                                ${isSelected
+                                                    ? `${borderMap[g.id]} ${glowMap[g.id]}`
+                                                    : "border-white/[0.08] hover:" + borderMap[g.id]
+                                                }
+                                            `}
+                                        >
+                                            {/* Background shimmer */}
+                                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
+
+                                            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${iconBgMap[g.id]}`}>
+                                                {g.icon}
+                                            </div>
+                                            <div className={isAr ? "text-right flex-1" : "text-left flex-1"}>
+                                                <p className="font-black text-white text-base leading-tight">
+                                                    {isAr ? g.labelAr : g.labelEn}
+                                                </p>
+                                                <p className="text-xs text-white/45 mt-1 leading-relaxed">
+                                                    {isAr ? g.descAr : g.descEn}
+                                                </p>
+                                            </div>
+                                            {isSelected && (
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${iconBgMap[g.id]}`}>
+                                                    <div className="w-2 h-2 rounded-full bg-current" />
+                                                </div>
+                                            )}
+                                        </motion.button>
+                                    );
+                                })}
                             </div>
                         </motion.div>
                     )}
+
 
                     {/* ━━ Step 2: Muscle ━━ */}
                     {step === "muscle" && (
@@ -475,10 +522,157 @@ export function WorkoutGenerator() {
 
                             {/* Cards */}
                             {limitedExercises && limitedExercises.length > 0 && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-4">
+
+                                  {/* Workout session progress bar */}
+                                  {workoutStarted && !workoutDone && (
+                                    <div className="bg-[#181818] border border-white/[0.08] rounded-2xl p-4 space-y-3">
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-white/60">{isAr ? "تقدم التمرين" : "Workout Progress"}</span>
+                                        <span className="font-bold text-[#59f20d]">{completedExercises.size}/{limitedExercises.length}</span>
+                                      </div>
+                                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                        <motion.div
+                                          animate={{ width: `${(completedExercises.size / limitedExercises.length) * 100}%` }}
+                                          transition={{ duration: 0.5 }}
+                                          className="h-full bg-[#59f20d] rounded-full"
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Workout complete celebration */}
+                                  {workoutDone && (
+                                    <motion.div
+                                      initial={{ opacity: 0, scale: 0.9 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      className="bg-[#59f20d]/10 border border-[#59f20d]/30 rounded-2xl p-6 text-center space-y-2"
+                                    >
+                                      <div className="text-4xl">🎉</div>
+                                      <h3 className="text-lg font-black text-[#59f20d]">
+                                        {isAr ? "أحسنت! اكتمل التمرين!" : "Great job! Workout Complete!"}
+                                      </h3>
+                                      <p className="text-sm text-white/50">
+                                        {isAr
+                                          ? `أتممت ${limitedExercises.length} تمرين بنجاح 💪`
+                                          : `You completed ${limitedExercises.length} exercises 💪`}
+                                      </p>
+                                      <button
+                                        onClick={() => {
+                                          setWorkoutStarted(false);
+                                          setCompletedExercises(new Set());
+                                          setWorkoutDone(false);
+                                          setStep("goal");
+                                          setSelectedGoal(null);
+                                          setSelectedMuscles([]);
+                                        }}
+                                        className="mt-2 px-6 py-2.5 rounded-xl bg-[#59f20d] text-black text-sm font-black hover:brightness-105 transition"
+                                      >
+                                        {isAr ? "تمرين جديد" : "New Workout"}
+                                      </button>
+                                    </motion.div>
+                                  )}
+
+                                  {/* Exercise cards — each has its own Mark Done button */}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {limitedExercises.map((ex: any) => (
-                                        <ExerciseCard key={ex._id} exercise={ex} />
+                                      <ExerciseCard
+                                        key={ex._id}
+                                        exercise={ex}
+                                        isCompleted={completedExercises.has(ex._id)}
+                                        onComplete={workoutStarted && !workoutDone ? () => {
+                                          setCompletedExercises(prev => {
+                                            const next = new Set(prev);
+                                            if (next.has(ex._id)) next.delete(ex._id);
+                                            else next.add(ex._id);
+                                            return next;
+                                          });
+                                        } : undefined}
+                                      />
                                     ))}
+                                  </div>
+
+                                  {/* Action buttons below exercises */}
+                                  {!workoutDone && (
+                                    <div className="pt-2">
+                                      {!workoutStarted ? (
+                                        <motion.button
+                                          whileTap={{ scale: 0.97 }}
+                                          onClick={() => {
+                                            setWorkoutStarted(true);
+                                            setCompletedExercises(new Set());
+                                          }}
+                                          className="w-full py-4 rounded-2xl bg-[#59f20d] text-black font-black text-base flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(89,242,13,0.3)] hover:brightness-105 transition"
+                                        >
+                                          <span className="text-xl">▶</span>
+                                          {isAr ? "ابدأ التمرين الآن" : "Start Workout Now"}
+                                        </motion.button>
+                                      ) : (
+                                        <div className="flex gap-3">
+                                          <button
+                                            onClick={() => {
+                                              setWorkoutStarted(false);
+                                              setCompletedExercises(new Set());
+                                            }}
+                                            className="flex-1 py-3.5 rounded-2xl border border-white/10 text-white/50 text-sm font-semibold hover:text-white hover:border-white/20 transition"
+                                          >
+                                            {isAr ? "إلغاء" : "Cancel"}
+                                          </button>
+                                          <motion.button
+                                            whileTap={{ scale: 0.97 }}
+                                            disabled={completedExercises.size === 0 || isSaving}
+                                            onClick={async () => {
+                                              if (!limitedExercises) return;
+                                              setIsSaving(true);
+                                              try {
+                                                // Log EACH completed exercise to the database
+                                                await Promise.all(
+                                                  limitedExercises
+                                                    .filter((ex: any) => completedExercises.has(ex._id))
+                                                    .map((ex: any) =>
+                                                      logWorkout({
+                                                        exerciseId: ex._id,
+                                                        duration: ex.duration || 30,
+                                                        sets: ex.sets || 3,
+                                                        reps: Array(ex.sets || 3).fill(ex.reps ? parseInt(ex.reps) || 12 : 12),
+                                                        caloriesBurned: ex.caloriesBurned || Math.round((ex.duration || 30) * 5),
+                                                      })
+                                                    )
+                                                );
+                                                setWorkoutDone(true);
+                                              } catch (e) {
+                                                console.error("Failed to log workouts", e);
+                                                setWorkoutDone(true); // still show complete
+                                              } finally {
+                                                setIsSaving(false);
+                                              }
+                                            }}
+                                            className={`flex-[2] py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition ${
+                                              completedExercises.size > 0 && !isSaving
+                                                ? "bg-[#59f20d] text-black shadow-[0_0_20px_rgba(89,242,13,0.25)] hover:brightness-105"
+                                                : "bg-white/5 text-white/20 cursor-not-allowed"
+                                            }`}
+                                          >
+                                            {isSaving ? (
+                                              <span className="flex items-center gap-2">
+                                                <span className="w-4 h-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />
+                                                {isAr ? "جاري الحفظ..." : "Saving..."}
+                                              </span>
+                                            ) : (
+                                              <>{isAr
+                                                ? completedExercises.size > 0 
+                                                  ? `شطب التمرين (${completedExercises.size}/${limitedExercises.length}) ✓`
+                                                  : "حدد التمارين المنجزة أولاً"
+                                                : completedExercises.size > 0
+                                                  ? `Finish Workout (${completedExercises.size}/${limitedExercises.length}) ✓`
+                                                  : "Select exercises to finish"}
+                                              </>
+                                            )}
+                                          </motion.button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                             )}
                         </motion.div>

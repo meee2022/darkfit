@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Salad,
   Droplets,
@@ -11,6 +12,8 @@ import {
   Utensils,
   ClipboardCheck,
   ScanLine,
+  Bell,
+  X,
 } from "lucide-react";
 import { useLanguage } from "../lib/i18n";
 import { AIMealSuggestion } from "./AIMealSuggestion";
@@ -71,6 +74,12 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
   // Modal state for adding food to meal
   const [showFoodModal, setShowFoodModal] = useState(false);
   const [selectedMealForAdd, setSelectedMealForAdd] = useState<Exclude<MealType, "">>("breakfast");
+
+  // Notification dismissal state
+  const [dismissWaterReminder, setDismissWaterReminder] = useState(false);
+
+  // Quick barcode scanner state for hero area
+  const [heroScanMeal, setHeroScanMeal] = useState<Exclude<MealType, "">>('breakfast');
 
   const foods = useQuery(api.nutrition.getAllFoods, {
     category: selectedCategoryAr || undefined,
@@ -264,7 +273,12 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
       </div>
 
       {/* Daily Summary Card */}
-      <div className="bg-zinc-900 rounded-3xl border-2 border-[#59f20d]/20 p-6 space-y-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-[#111]/80 backdrop-blur-xl rounded-[2rem] border border-white/5 p-6 space-y-4 shadow-2xl relative overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#59f20d]/5 rounded-full blur-[80px] pointer-events-none" />
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold">{isAr ? "الملخص اليومي" : "Daily Summary"}</h3>
@@ -272,33 +286,50 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
               {isAr ? "الأربعاء 14 فبراير" : todayISO()}
             </p>
           </div>
-          <button className="px-4 py-2 bg-[#59f20d]/10 border border-[#59f20d] rounded-2xl text-[#59f20d] text-sm font-bold">
-            {isAr ? "قراءة المسح" : "Scan QR"}
-          </button>
+          <div className="flex items-center gap-2">
+            <BarcodeScanner
+              onAddFood={(food, mealType) => {
+                addScanned({
+                  mealType: mealType as any,
+                  barcode: food.barcode,
+                  foodData: {
+                    nameEn: food.nameEn,
+                    nameAr: food.nameAr,
+                    calories: food.calories,
+                    protein: food.protein,
+                    carbs: food.carbs,
+                    fat: food.fat,
+                  }
+                });
+              }}
+              triggerLabel={isAr ? "مسح الباركود" : "Scan QR"}
+              triggerClassName="px-4 py-2 bg-[#59f20d]/10 border border-[#59f20d] rounded-2xl text-[#59f20d] text-sm font-bold hover:bg-[#59f20d]/20 transition-colors flex items-center gap-2"
+            />
+          </div>
         </div>
 
         {/* Circular Progress */}
         <div className="flex justify-center py-6">
-          <div className="relative w-64 h-64">
-            <svg className="absolute inset-0 w-full h-full transform -rotate-90">
+          <div className="relative w-full max-w-[16rem] aspect-square mx-auto">
+            <svg viewBox="0 0 300 300" className="absolute inset-0 w-full h-full transform -rotate-90">
               <circle
-                cx="128"
-                cy="128"
-                r="110"
+                cx="150"
+                cy="150"
+                r="130"
                 stroke="#1a1a1a"
-                strokeWidth="16"
+                strokeWidth="20"
                 fill="none"
               />
               <circle
-                cx="128"
-                cy="128"
-                r="110"
+                cx="150"
+                cy="150"
+                r="130"
                 stroke="#59f20d"
-                strokeWidth="16"
+                strokeWidth="20"
                 fill="none"
                 strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 110}`}
-                strokeDashoffset={`${2 * Math.PI * 110 * (1 - progress / 100)
+                strokeDasharray={`${2 * Math.PI * 130}`}
+                strokeDashoffset={`${2 * Math.PI * 130 * (1 - progress / 100)
                   }`}
                 className="transition-all duration-1000"
               />
@@ -341,9 +372,11 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
               </span>
             </div>
             <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-              <div
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, (dayCalories / Math.max(1, targetCalories)) * 100)}%` }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
                 className="h-full bg-[#59f20d] rounded-full"
-                style={{ width: `${Math.min(100, (dayCalories / targetCalories) * 100)}%` }}
               />
             </div>
           </div>
@@ -356,9 +389,11 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
               </span>
             </div>
             <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-              <div
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, (dayCalories / Math.max(1, targetCalories)) * 100)}%` }}
+                transition={{ duration: 1.5, delay: 0.2, ease: "easeOut" }}
                 className="h-full bg-blue-500 rounded-full"
-                style={{ width: `${Math.min(100, (dayCalories / targetCalories) * 100)}%` }}
               />
             </div>
           </div>
@@ -371,54 +406,54 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
               </span>
             </div>
             <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-              <div
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, (dayCalories / Math.max(1, targetCalories)) * 100)}%` }}
+                transition={{ duration: 1.5, delay: 0.4, ease: "easeOut" }}
                 className="h-full bg-orange-500 rounded-full"
-                style={{ width: `${Math.min(100, (dayCalories / targetCalories) * 100)}%` }}
               />
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Water Intake */}
       <div className="bg-zinc-900 rounded-3xl p-5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 flex-wrap">
           <button
             onClick={() => setWater({ waterIntake: waterMl + 250, date: todayISO() })}
-            className="w-12 h-12 rounded-full bg-[#59f20d] flex items-center justify-center flex-shrink-0"
+            className="w-12 h-12 rounded-full bg-[#59f20d] flex items-center justify-center flex-shrink-0 hover:scale-110 active:scale-95 transition-transform shadow-[0_0_12px_rgba(89,242,13,0.3)]"
           >
-            <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
+            <Plus className="w-6 h-6 text-black" />
           </button>
-
           <button
             onClick={() => setWater({ waterIntake: Math.max(0, waterMl - 250), date: todayISO() })}
             disabled={waterMl === 0}
-            className="w-12 h-12 rounded-full bg-zinc-800 disabled:opacity-50 text-gray-400 flex items-center justify-center flex-shrink-0 hover:bg-red-500/20 hover:text-red-500 transition-colors"
+            className="w-12 h-12 rounded-full bg-zinc-800 disabled:opacity-50 text-gray-400 flex items-center justify-center flex-shrink-0 hover:bg-red-500/20 hover:text-red-400 transition-colors"
           >
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-            </svg>
+            <Minus className="w-6 h-6" />
           </button>
-
-          <div className="flex gap-1">
+          <div className="flex gap-1 items-center">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div
+              <motion.div
                 key={i}
+                animate={{ height: waterMl >= i * 250 ? 32 : 20, opacity: waterMl >= i * 250 ? 1 : 0.35 }}
+                transition={{ duration: 0.3 }}
                 className={cn(
-                  "w-2 h-8 rounded-full transition-colors",
-                  waterMl >= i * 250 ? "bg-blue-500" : "bg-zinc-800"
+                  "w-2 rounded-full",
+                  waterMl >= i * 250
+                    ? "bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.5)]"
+                    : "bg-zinc-700"
                 )}
               />
             ))}
           </div>
           <div>
-            <div className="text-sm font-bold">{isAr ? "شرب الماء" : "Water"}</div>
-            <div className="text-xs text-gray-400">{waterMl}ml {isAr ? "من 8 أكواب" : "of 8 cups"}</div>
+            <div className="text-sm font-bold">{isAr ? "شرب الماء" : "Water Intake"}</div>
+            <div className="text-xs text-gray-400">{waterMl}ml {isAr ? "من 2000 ml" : "of 2000 ml"}</div>
           </div>
         </div>
-        <Droplets className="h-8 w-8 text-blue-400" />
+        <Droplets className="h-8 w-8 text-blue-400 flex-shrink-0" />
       </div>
 
       {/* AI Meal Suggestion */}
@@ -493,7 +528,7 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
               </div>
 
               {/* Foods in this meal */}
-              {meal.foods.length > 0 && (
+              {meal.foods.length > 0 ? (
                 <div className="space-y-2 mt-3 pt-3 border-t border-zinc-800">
                   {meal.foods.map((f: any) => {
                     const food = foods?.find((fd) => fd._id === f.foodId);
@@ -528,40 +563,113 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
                     );
                   })}
                 </div>
+              ) : (
+                <div className="mt-3 pt-3 border-t border-zinc-800/60 flex items-center justify-between gap-3">
+                  <p className="text-xs text-gray-500">
+                    {isAr
+                      ? `لم يتم تسجيل وجبة ${mealName} بعد`
+                      : `No ${mealName} logged yet`}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSelectedMealForAdd(meal.mealType as any);
+                      setShowFoodModal(true);
+                    }}
+                    className="px-3 py-1.5 bg-[#59f20d]/10 hover:bg-[#59f20d]/20 border border-[#59f20d]/30 rounded-xl text-[#59f20d] text-xs font-bold transition-colors flex items-center gap-1 shrink-0"
+                  >
+                    <Plus className="w-3 h-3" />
+                    {isAr ? "سجل الآن" : "Log Now"}
+                  </button>
+                </div>
               )}
             </div>
           );
         })}
       </div>
 
-      {/* Empty Meal Placeholder */}
-      <div className="bg-zinc-900/50 rounded-3xl border-2 border-dashed border-zinc-800 p-8 text-center">
-        <Utensils className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-        <h4 className="text-base font-bold text-gray-400 mb-1">{isAr ? "عشاء" : "Dinner"}</h4>
-        <p className="text-sm text-gray-500 mb-3">{isAr ? "لم يتم تسجيل أي طعام بعد" : "No food logged yet"}</p>
-        <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-2xl text-sm font-medium transition-colors">
-          {isAr ? "سجل الآن" : "Log Now"}
-        </button>
-      </div>
-
       {/* Quick Meal Suggestion */}
-      <div className="bg-gradient-to-r from-orange-500/20 to-orange-600/10 border-2 border-orange-500/30 rounded-3xl p-5 flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
-          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+      <div className="bg-gradient-to-r from-orange-500/10 to-transparent border border-orange-500/20 rounded-3xl p-5 flex items-center gap-4 backdrop-blur-md">
+        <div className="w-12 h-12 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+          <svg className="w-6 h-6 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
             <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
           </svg>
         </div>
         <div>
-          <h4 className="font-bold">{isAr ? "وجبات خفيفة" : "Snack Meals"}</h4>
-          <p className="text-sm text-gray-300">{isAr ? "6-7 وجبات • مستحسنة" : "6-7 meals • Recommended"}</p>
+          <h4 className="font-bold text-orange-50">{isAr ? "وجبات خفيفة" : "Snack Meals"}</h4>
+          <p className="text-xs text-orange-200/60 mt-0.5">{isAr ? "6-7 وجبات • مستحسنة" : "6-7 meals • Recommended"}</p>
         </div>
-        <button className="ml-auto w-10 h-10 rounded-full bg-[#59f20d] flex items-center justify-center">
+        <button 
+          onClick={() => {
+            setSelectedMealForAdd("snack");
+            setShowFoodModal(true);
+          }}
+          className="ml-auto w-10 h-10 rounded-full bg-[#59f20d] flex items-center justify-center shadow-[0_0_15px_rgba(89,242,13,0.3)] hover:scale-110 active:scale-95 transition-transform"
+        >
           <Plus className="w-5 h-5 text-black" />
         </button>
       </div>
 
+      {/* Floating Inline Water Reminder */}
+      <AnimatePresence>
+        {!dismissWaterReminder && waterMl < 2000 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="relative bg-zinc-950/80 backdrop-blur-xl border border-blue-500/30 rounded-[1.5rem] p-5 shadow-[0_0_30px_rgba(59,130,246,0.15)] mt-4"
+          >
+            {/* Inner Glow */}
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-blue-500/5 blur-xl pointer-events-none rounded-b-[1.5rem]" />
+            
+            <button
+              onClick={() => setDismissWaterReminder(true)}
+              className="absolute top-3 left-3 w-6 h-6 rounded-full bg-zinc-800/50 hover:bg-zinc-700 flex items-center justify-center transition-colors"
+            >
+              <X className="w-3 h-3 text-gray-400" />
+            </button>
+            
+            <div className="flex flex-col items-center text-center mt-2 px-2">
+              <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
+                <Droplets className="w-6 h-6 text-blue-400" />
+              </div>
+              <h4 className="text-white font-bold text-base mb-1">
+                {isAr ? "تذكير شرب الماء" : "Water Reminder"}
+              </h4>
+              <p className="text-sm text-gray-400 mb-5">
+                {isAr ? "هل شربت كمية كافية من الماء اليوم؟" : "Did you drink enough water today?"}
+              </p>
+              
+              <div className="flex w-full gap-3">
+                <button
+                  onClick={() => setDismissWaterReminder(true)}
+                  className="flex-1 py-3 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-gray-300 text-sm font-medium transition-colors"
+                >
+                  {isAr ? "لا، ذكرني لاحقاً" : "No, remind later"}
+                </button>
+                <button
+                  onClick={() => {
+                    setWater({ waterIntake: waterMl + 250, date: todayISO() });
+                    // Optional: auto-dismiss on adding a certain amount
+                    if (waterMl + 250 >= 2000) setDismissWaterReminder(true);
+                  }}
+                  className="flex-1 py-3 px-4 rounded-xl bg-blue-500 hover:bg-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.4)] text-white text-sm font-bold transition-all hover:scale-[1.02] active:scale-95"
+                >
+                  {isAr ? "نعم، أضف كوباً" : "Yes, add a cup"}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Floating Add Button */}
-      <button className="fixed bottom-24 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-[#59f20d] flex items-center justify-center shadow-2xl shadow-[#59f20d]/50">
+      <button 
+        onClick={() => {
+          setSelectedMealForAdd("breakfast"); // default
+          setShowFoodModal(true);
+        }}
+        className="fixed bottom-24 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-[#59f20d] flex items-center justify-center shadow-[0_0_25px_rgba(89,242,13,0.5)] hover:scale-110 active:scale-95 transition-transform z-40"
+      >
         <Plus className="w-7 h-7 text-black" />
       </button>
 

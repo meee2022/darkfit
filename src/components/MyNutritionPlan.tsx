@@ -1,19 +1,70 @@
-import React, { useState } from "react";
-import { useQuery } from "convex/react";
+import React, { useState, useMemo } from "react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useLanguage } from "../lib/i18n";
+import { X, Search, Plus } from "lucide-react";
+import { toast } from "sonner";
 
-export function MyNutritionPlan() {
+interface Props {
+  onBack?: () => void;
+}
+
+export function MyNutritionPlan({ onBack }: Props) {
   const { language } = useLanguage();
   const isAr = language === "ar";
 
   const myPlan = useQuery(api.nutrition.getMyNutritionPlan);
+  const allFoods = useQuery(api.nutrition.getAllFoods, {});
+  const addFoodToMyPlan = useMutation(api.nutrition.addFoodToMyPlan);
+
   const [selectedDay, setSelectedDay] = useState(1);
+  const [addingToMeal, setAddingToMeal] = useState<{ mealIndex: number; mealName: string } | null>(null);
+  const [foodSearch, setFoodSearch] = useState("");
+  const [quantity, setQuantity] = useState(100);
+  const [adding, setAdding] = useState(false);
+
+  const filteredFoods = useMemo(() => {
+    if (!allFoods || !foodSearch.trim()) return (allFoods || []).slice(0, 10);
+    const q = foodSearch.trim().toLowerCase();
+    return allFoods.filter((f: any) =>
+      (f.name || "").toLowerCase().includes(q) ||
+      (f.nameAr || "").toLowerCase().includes(q)
+    ).slice(0, 15);
+  }, [allFoods, foodSearch]);
+
+  const handleAddFood = async (food: any) => {
+    if (!addingToMeal || !myPlan) return;
+    setAdding(true);
+    try {
+      await addFoodToMyPlan({
+        dayNumber: selectedDay,
+        mealIndex: addingToMeal.mealIndex,
+        foodId: food._id,
+        quantity,
+      });
+      toast.success(isAr ? "تمت إضافة الطعام!" : "Food added!");
+      setAddingToMeal(null);
+      setFoodSearch("");
+      setQuantity(100);
+    } catch (e: any) {
+      toast.error(e.message || (isAr ? "حدث خطأ" : "Error"));
+    } finally {
+      setAdding(false);
+    }
+  };
 
   if (!myPlan) {
     return (
-      <div className="min-h-screen bg-[#0a0d08] text-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0c0c0c] text-white flex items-center justify-center p-4">
         <div className="text-center max-w-md">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center hover:bg-zinc-700 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
           <div className="text-6xl mb-4">📋</div>
           <h2 className="text-2xl font-bold mb-2">{isAr ? "لا توجد خطة غذائية" : "No Nutrition Plan"}</h2>
           <p className="text-zinc-400">{isAr ? "لم يتم تعيين خطة غذائية لك بعد" : "No nutrition plan has been assigned to you yet"}</p>
@@ -48,21 +99,19 @@ export function MyNutritionPlan() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-[#0a0d08] text-white pb-24" dir={isAr ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-[#0c0c0c] text-white pb-24" dir={isAr ? "rtl" : "ltr"}>
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#0a0d08]/95 backdrop-blur-md border-b border-zinc-800">
+      <div className="sticky top-0 z-30 bg-[#0c0c0c]/95 backdrop-blur-md border-b border-zinc-800/60">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <button className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center hover:bg-zinc-700 transition">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-            </svg>
-          </button>
           <h1 className="text-xl font-bold">{isAr ? "خطتي الغذائية" : "My Nutrition Plan"}</h1>
-          <button className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center hover:bg-zinc-700 transition">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-          </button>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center hover:bg-zinc-700 transition"
+            >
+              <X className="w-5 h-5 text-zinc-300" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -112,32 +161,32 @@ export function MyNutritionPlan() {
             </div>
 
             {/* Circular Progress */}
-            <div className="relative w-32 h-32">
-              <svg className="absolute inset-0 w-full h-full transform -rotate-90">
+            <div className="relative w-20 h-20 sm:w-28 sm:h-28 flex-shrink-0">
+              <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 56 56">
                 <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
+                  cx="28"
+                  cy="28"
+                  r="22"
                   stroke="#1a2318"
-                  strokeWidth="12"
+                  strokeWidth="5"
                   fill="none"
                 />
                 <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
+                  cx="28"
+                  cy="28"
+                  r="22"
                   stroke="#59f20d"
-                  strokeWidth="12"
+                  strokeWidth="5"
                   fill="none"
                   strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * 56}`}
-                  strokeDashoffset={`${2 * Math.PI * 56 * (1 - progressPercentage / 100)}`}
+                  strokeDasharray={`${2 * Math.PI * 22}`}
+                  strokeDashoffset={`${2 * Math.PI * 22 * (1 - Math.min(progressPercentage, 100) / 100)}`}
                   className="transition-all duration-500"
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="text-2xl font-black text-white">{dayTotals.calories}</div>
-                <div className="text-[10px] text-zinc-500">{isAr ? "متبقي" : "remaining"}</div>
+                <div className="text-base sm:text-xl font-black text-white leading-none">{dayTotals.calories}</div>
+                <div className="text-[9px] text-zinc-500 mt-0.5">{isAr ? "متبقي" : "remaining"}</div>
               </div>
             </div>
           </div>
@@ -277,8 +326,12 @@ export function MyNutritionPlan() {
 
                   {/* Add Food Button */}
                   <div className="p-4 border-t border-[#2a3528] bg-[#0a0d08]/50">
-                    <button className="w-full py-3 rounded-xl border-2 border-dashed border-[#2a3528] text-[#59f20d] text-sm font-medium hover:border-[#59f20d]/50 hover:bg-[#59f20d]/5 transition">
-                      + {isAr ? "إضافة طعام" : "Add Food"}
+                    <button
+                      onClick={() => setAddingToMeal({ mealIndex, mealName: isAr ? meal.nameAr : meal.name })}
+                      className="w-full py-3 rounded-xl border-2 border-dashed border-[#59f20d]/40 text-[#59f20d] text-sm font-medium hover:border-[#59f20d]/70 hover:bg-[#59f20d]/5 transition flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      {isAr ? "إضافة طعام" : "Add Food"}
                     </button>
                   </div>
                 </div>
@@ -287,6 +340,85 @@ export function MyNutritionPlan() {
           )}
         </div>
       </div>
+
+      {/* ========= Food Picker Modal ========= */}
+      {addingToMeal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setAddingToMeal(null)}>
+          <div
+            className="w-full max-w-lg bg-[#111] border border-zinc-800 rounded-t-[2rem] p-5 animate-in slide-in-from-bottom duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-black text-white text-lg">
+                {isAr ? `إضافة إلى ${addingToMeal.mealName}` : `Add to ${addingToMeal.mealName}`}
+              </h3>
+              <button onClick={() => setAddingToMeal(null)} className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
+                <X className="w-4 h-4 text-zinc-400" />
+              </button>
+            </div>
+
+            {/* Quantity Selector */}
+            <div className="flex items-center gap-3 mb-4 p-3 bg-zinc-900 rounded-2xl border border-zinc-800">
+              <span className="text-sm text-zinc-400 flex-shrink-0">{isAr ? "الكمية (غرام)" : "Quantity (g)"}</span>
+              <input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+                className="flex-1 bg-transparent text-white text-center font-bold text-lg focus:outline-none"
+                min={1}
+                max={2000}
+              />
+              <div className="flex gap-1">
+                {[50, 100, 150, 200].map((g) => (
+                  <button key={g} onClick={() => setQuantity(g)}
+                    className={`px-2 py-1 rounded-lg text-xs font-bold transition ${quantity === g ? "bg-[#59f20d] text-black" : "bg-zinc-800 text-zinc-400"}`}>
+                    {g}g
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative mb-3">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                value={foodSearch}
+                onChange={(e) => setFoodSearch(e.target.value)}
+                placeholder={isAr ? "ابحث عن طعام..." : "Search food..."}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 pr-10 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[#59f20d]/50"
+                autoFocus
+              />
+            </div>
+
+            {/* Foods List */}
+            <div className="max-h-60 overflow-y-auto space-y-2">
+              {filteredFoods.length === 0 ? (
+                <p className="text-center text-zinc-500 text-sm py-6">{isAr ? "لا توجد نتائج" : "No results found"}</p>
+              ) : (
+                filteredFoods.map((food: any) => {
+                  const cals = Math.round((food.caloriesPer100g || 0) * quantity / 100);
+                  const prot = Math.round((food.proteinPer100g || 0) * quantity / 100 * 10) / 10;
+                  return (
+                    <button
+                      key={food._id}
+                      onClick={() => handleAddFood(food)}
+                      disabled={adding}
+                      className="w-full flex items-center justify-between p-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-[#59f20d]/30 transition-all text-start"
+                    >
+                      <div>
+                        <p className="font-bold text-white text-sm">{isAr ? food.nameAr : food.name}</p>
+                        <p className="text-xs text-zinc-500">{cals} kcal • {prot}g {isAr ? "بروتين" : "protein"}</p>
+                      </div>
+                      <Plus className="w-5 h-5 text-[#59f20d] flex-shrink-0" />
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {

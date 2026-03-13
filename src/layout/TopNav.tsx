@@ -21,9 +21,10 @@ type Props = {
   activeSection: SectionId;
   setActiveSection: (id: SectionId) => void;
   isAdmin?: boolean;
+  isCoach?: boolean;
 };
 
-export function TopNav({ activeSection, setActiveSection, isAdmin = false }: Props) {
+export function TopNav({ activeSection, setActiveSection, isAdmin = false, isCoach = false }: Props) {
   const { t, language } = useLanguage();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -60,15 +61,15 @@ export function TopNav({ activeSection, setActiveSection, isAdmin = false }: Pro
       { id: "health" as const, label: tr("health", "الصحة"), icon: HeartPulse },
       { id: "calculator" as const, label: tr("calculator", "الحاسبة"), icon: Calculator },
       { id: "plans" as const, label: tr("plans", "خططي"), icon: ClipboardList },
+      ...(isCoach ? [{ id: "coachDashboard" as const, label: tr("coach_dashboard", "لوحة المدرب"), icon: ClipboardList }] : []),
       ...(isAdmin ? [{ id: "coachPlans" as const, label: tr("coach_plans", "خطط المتدربين"), icon: ClipboardList }] : []),
     ],
-    [language, isAdmin]
+    [language, isAdmin, isCoach]
   );
 
   const moreItems = useMemo(
     () => [
       { id: "fitbot" as const, label: tr("fitbot", "المساعد الذكي"), icon: Bot },
-      { id: "profile" as const, label: tr("profile", "الملف الشخصي"), icon: User },
     ],
     [language]
   );

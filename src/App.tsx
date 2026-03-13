@@ -17,6 +17,7 @@ import { ProfileSection } from "./components/ProfileSection";
 import { WorkoutGenerator } from "./components/WorkoutGenerator";
 
 import { CoachWorkoutPlanForm } from "./components/CoachWorkoutPlanForm";
+import { CoachDashboard } from "./components/CoachDashboard";
 import { MyPlans } from "./components/MyPlans";
 import { MyNutritionPlan } from "./components/MyNutritionPlan";
 
@@ -143,6 +144,7 @@ export default function App() {
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const userProfile = useQuery(api.profiles.getCurrentProfile);
   const isAdmin = useQuery(api.profiles.checkAdminStatus);
+  const isCoach = useQuery(api.profiles.checkCoachStatus);
 
   const isProfileLoading = isAuthenticated && userProfile === undefined;
   const needsProfile = isAuthenticated && userProfile === null;
@@ -194,6 +196,7 @@ export default function App() {
                 setActiveSection(id);
               }}
               isAdmin={!!isAdmin}
+              isCoach={!!isCoach}
             />
 
             {/* Modal تسجيل الدخول */}
@@ -315,6 +318,18 @@ export default function App() {
 
                         {activeSection === "coachPlans" && isAdmin && (
                           <CoachWorkoutPlanForm />
+                        )}
+
+                        {activeSection === "coachDashboard" && isCoach && (
+                          <CoachDashboard />
+                        )}
+
+                        {activeSection === "coachDashboard" && !isCoach && (
+                          <p className="mt-4 text-sm text-red-500">
+                            {language === "ar"
+                              ? "ليس لديك صلاحية الدخول إلى لوحة المدرب."
+                              : "You don't have coach access."}
+                          </p>
                         )}
 
                         {activeSection === "admin" && isAdmin && <AdminPanel />}

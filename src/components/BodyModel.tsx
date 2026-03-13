@@ -442,34 +442,28 @@ export function BodyModel({
             </div>
           ) : null}
 
-          <svg
-            viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-            className="w-full h-auto"
-            role="img"
-            aria-label="خريطة الجسم التفاعلية"
-          >
+          <div className="relative w-full">
             {imgUrl ? (
-              <image
-                href={imgUrl}
-                xlinkHref={imgUrl as any}
-                x={IMG_X}
-                y={IMG_Y}
-                width={SVG_W}
-                height={SVG_H}
-                preserveAspectRatio="none"
-                style={{ filter: "invert(1) sepia(1) saturate(5) hue-rotate(50deg) brightness(0.8)" }}
+              <img
+                src={imgUrl}
+                alt="Body Model"
+                className="w-full h-auto block"
+                style={{ 
+                  WebkitFilter: "invert(1) sepia(1) saturate(5) hue-rotate(50deg) brightness(0.8)",
+                  filter: "invert(1) sepia(1) saturate(5) hue-rotate(50deg) brightness(0.8)" 
+                }}
               />
             ) : (
-              <text
-                x={SVG_W / 2}
-                y={SVG_H / 2}
-                textAnchor="middle"
-                fontSize="12"
-                fill="#888"
-              >
-                جاري تحميل الصورة...
-              </text>
+              <div style={{ aspectRatio: `${SVG_W}/${SVG_H}` }} className="w-full flex items-center justify-center">
+                <span className="text-[#888] text-xs">جاري تحميل الصورة...</span>
+              </div>
             )}
+            <svg
+              viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+              className="absolute inset-0 w-full h-full"
+              role="img"
+              aria-label="خريطة الجسم التفاعلية"
+            >
 
             {shapes.map((m) => {
               const isSelected = selectedMuscles.includes(m.id); // ← هنا
@@ -522,7 +516,8 @@ export function BodyModel({
                 </g>
               );
             })}
-          </svg>
+            </svg>
+          </div>
         </div>
 
         <div className="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">

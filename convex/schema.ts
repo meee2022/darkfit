@@ -29,7 +29,7 @@ const applicationTables = {
       v.union(v.literal("home"), v.literal("gym"), v.literal("both"))
     ),
     email: v.optional(v.string()),
-    role: v.optional(v.union(v.literal("admin"), v.literal("user"))),
+    role: v.optional(v.union(v.literal("admin"), v.literal("coach"), v.literal("user"))),
     goals: v.array(v.string()),
     medicalConditions: v.optional(v.array(v.string())),
     isAdmin: v.optional(v.boolean()),

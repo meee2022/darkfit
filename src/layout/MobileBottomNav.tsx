@@ -4,10 +4,9 @@ import {
   Calculator,
   HeartPulse,
   Users,
-  MoreHorizontal,
-  Salad,
   Pill,
   ClipboardList,
+  X,
 } from "lucide-react";
 import { useLanguage } from "../lib/i18n";
 import type { SectionId } from "../sections";
@@ -17,391 +16,298 @@ type Props = {
   onChange: (id: SectionId) => void;
 };
 
-type NavItem = {
+type NavConfig = {
   id: SectionId | "more";
-  label: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  labelAr: string;
+  labelEn: string;
+  emoji: string;       // 3D emoji icon
+  color: string;       // accent hex
 };
 
-const BRAND = {
-  primary: "#59f20d",
-  bgDark: "#0c0c0c",
-};
+/* ─── Animated Tab ─── */
+function TabButton({
+  config, active, onClick,
+}: { config: NavConfig; active: boolean; onClick: () => void; }) {
+  const { language } = useLanguage();
+  const lbl = language === "ar" ? config.labelAr : config.labelEn;
 
-function cn(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
-
-/* ========= أيقونات مخصصة ========= */
-
-function WorkoutIcon(props: { className?: string; strokeWidth?: number }) {
-  const strokeWidth = props.strokeWidth ?? 2.4;
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={props.className}
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex-1 flex flex-col items-center justify-center relative outline-none focus:outline-none"
+      style={{ minHeight: 62, paddingBottom: 6 }}
     >
-      <path d="M12 3.5a2 2 0 1 1-0.01 0" />
-      <path d="M9 8.5c1-.7 2-.9 3-.9s2 .2 3 .9" />
-      <path d="M7.5 21.5l1.2-6.5 2.3-2.5M16.5 21.5l-1.2-6.5-2.3-2.5" />
-      <path d="M5.5 13.5c1 .3 2-.1 2.7-.7l1.1-1" />
-      <path d="M18.5 13.5c-1 .3-2-.1-2.7-.7l-1.1-1" />
-    </svg>
+      {/* Active top indicator */}
+      <div style={{
+        position: "absolute", top: 0, left: "50%",
+        transform: "translateX(-50%)",
+        width: active ? 28 : 0, height: 3,
+        borderRadius: "0 0 6px 6px",
+        background: config.color,
+        boxShadow: active ? `0 0 10px ${config.color}, 0 0 22px ${config.color}88` : "none",
+        transition: "width 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.35s ease",
+        opacity: active ? 1 : 0,
+      }} />
+
+      {/* Icon + label floats up on active */}
+      <div style={{
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+        transform: active ? "translateY(-7px)" : "translateY(0px)",
+        transition: "transform 0.4s cubic-bezier(0.34,1.56,0.64,1)",
+      }}>
+        {/* Emoji container with glow */}
+        <div style={{
+          width: 44, height: 44, borderRadius: 14,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          position: "relative",
+          background: active
+            ? `radial-gradient(circle, ${config.color}30, ${config.color}0a 70%, transparent 100%)`
+            : "transparent",
+          transition: "all 0.35s ease",
+        }}>
+          {active && (
+            <div style={{
+              position: "absolute", inset: 0, borderRadius: 14,
+              border: `1.5px solid ${config.color}44`,
+              boxShadow: `0 0 14px ${config.color}44, inset 0 0 10px ${config.color}18`,
+            }} />
+          )}
+          {/* 3D Emoji — rendered natively by OS as full 3D/colorful */}
+          <span
+            style={{
+              fontSize: active ? 26 : 22,
+              lineHeight: 1,
+              filter: active
+                ? `drop-shadow(0 0 8px ${config.color}cc) drop-shadow(0 2px 6px ${config.color}66)`
+                : "grayscale(20%) opacity(0.7)",
+              transition: "all 0.35s cubic-bezier(0.34,1.56,0.64,1)",
+              userSelect: "none",
+            }}
+            aria-hidden
+          >
+            {config.emoji}
+          </span>
+        </div>
+
+        {/* Label */}
+        <span style={{
+          fontSize: 11, fontWeight: 700, lineHeight: 1,
+          color: active ? config.color : "rgba(255,255,255,0.42)",
+          textShadow: active ? `0 0 10px ${config.color}bb` : "none",
+          transition: "all 0.3s ease",
+          letterSpacing: "0.01em",
+        }}>
+          {lbl}
+        </span>
+      </div>
+    </button>
   );
 }
 
-function PlansIcon(props: { className?: string; strokeWidth?: number }) {
-  const strokeWidth = props.strokeWidth ?? 2.4;
+/* ─── More Drawer Item ─── */
+function MoreItem({
+  config, active, onClick,
+}: { config: NavConfig; active: boolean; onClick: () => void; }) {
+  const { language } = useLanguage();
+  const lbl = language === "ar" ? config.labelAr : config.labelEn;
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={props.className}
-    >
-      <rect x="6" y="3" width="12" height="18" rx="2" />
-      <path d="M9 7h6M9 11h4M9 15h3" />
-    </svg>
-  );
-}
-
-function AccountIcon(props: { className?: string; strokeWidth?: number }) {
-  const strokeWidth = props.strokeWidth ?? 2.4;
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={props.className}
-    >
-      <circle cx="12" cy="8" r="3" />
-      <path d="M6 19c1.2-2.2 3.1-3.5 6-3.5s4.8 1.3 6 3.5" />
-    </svg>
-  );
-}
-
-// ✅ أيقونة FitBot جديدة
-function FitBotIcon(props: { className?: string; strokeWidth?: number }) {
-  const strokeWidth = props.strokeWidth ?? 2.4;
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={props.className}
-    >
-      {/* رأس الروبوت */}
-      <rect x="7" y="4" width="10" height="12" rx="2" />
-      {/* عيون */}
-      <circle cx="10" cy="9" r="1" />
-      <circle cx="14" cy="9" r="1" />
-      {/* فم مبتسم */}
-      <path d="M9.5 13c.5.5 1.5.8 2.5.8s2-.3 2.5-.8" />
-      {/* هوائيات */}
-      <path d="M9 4V2M15 4V2" />
-      {/* جسم */}
-      <path d="M7 16v2a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2" />
-    </svg>
-  );
-}
-
-/* ========= غلاف 3D بسيط للأيقونة ========= */
-
-function ThreeDIconWrapper({
-  children,
-  active,
-}: {
-  children: React.ReactNode;
-  active: boolean;
-}) {
-  return (
-    <div
-      className="relative flex items-center justify-center"
+    <button
+      type="button" onClick={onClick}
+      className="flex flex-col items-center gap-2 py-4 rounded-2xl outline-none focus:outline-none active:scale-95 transition-all duration-200"
       style={{
-        filter: active
-          ? "drop-shadow(0 4px 14px rgba(35,242,100,0.9))"
-          : "drop-shadow(0 3px 8px rgba(0,0,0,0.85))",
+        background: active ? `${config.color}18` : "rgba(255,255,255,0.03)",
+        border: `1.5px solid ${active ? config.color + "55" : "rgba(255,255,255,0.07)"}`,
+        boxShadow: active ? `0 0 20px ${config.color}44` : "none",
       }}
     >
-      <div
-        className="absolute inset-0 rounded-full opacity-70"
-        style={{
-          background: active
-            ? "radial-gradient(circle, rgba(35,242,100,0.5), transparent 70%)"
-            : "radial-gradient(circle, rgba(15,23,42,0.9), transparent 70%)",
-        }}
-      />
-      <div className="relative">{children}</div>
-    </div>
-  );
-}
-
-/* ========= Hex بطبقتين (إطار + خلفية) ========= */
-
-const HEX_CLIP =
-  "polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0 50%)";
-
-function Hex({
-  children,
-  size = 70,
-  active,
-}: {
-  children: React.ReactNode;
-  size?: number;
-  active: boolean;
-}) {
-  const borderThickness = 4;
-  const outerSize = size;
-  const innerSize = size - borderThickness * 2;
-
-  const borderColor = active ? BRAND.primary : "rgba(35,242,100,0.4)";
-  const innerBg = "#000000";
-  const color = active ? BRAND.primary : "#e5e7eb";
-
-  return (
-    <div
-      className="flex items-center justify-center"
-      style={{ width: outerSize, height: outerSize }}
-    >
-      <div
-        className="flex items-center justify-center shadow-[0_0_18px_rgba(35,242,100,0.7)]"
-        style={{
-          width: "100%",
-          height: "100%",
-          backgroundColor: borderColor,
-          clipPath: HEX_CLIP,
-        }}
-      >
-        <div
-          className="flex items-center justify-center"
-          style={{
-            width: innerSize,
-            height: innerSize,
-            background:
-              "radial-gradient(circle at 30% 0%, rgba(35,242,100,0.18), #000000 60%)",
-            clipPath: HEX_CLIP,
-            color,
-          }}
-        >
-          {children}
-        </div>
+      <div style={{
+        width: 44, height: 44, borderRadius: 14,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: active ? `${config.color}20` : "rgba(255,255,255,0.05)",
+        boxShadow: active ? `0 0 16px ${config.color}55` : "none",
+      }}>
+        <span style={{
+          fontSize: 24, lineHeight: 1,
+          filter: active ? `drop-shadow(0 0 6px ${config.color}cc)` : "grayscale(30%) opacity(0.65)",
+          transition: "all 0.25s ease",
+        }} aria-hidden>
+          {config.emoji}
+        </span>
       </div>
-    </div>
+      <span style={{
+        fontSize: 10, fontWeight: 700, textAlign: "center", lineHeight: 1.2, paddingInline: 4,
+        color: active ? config.color : "rgba(255,255,255,0.55)",
+        textShadow: active ? `0 0 8px ${config.color}99` : "none",
+      }}>
+        {lbl}
+      </span>
+    </button>
   );
 }
 
-/* hex العائم في النص (الرئيسية) */
-
-function FloatingHex({ active }: { active: boolean }) {
-  return (
-    <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-20">
-      <Hex active={active} size={78}>
-        <ThreeDIconWrapper active={active}>
-          <Home className="w-6 h-6" strokeWidth={2.6} />
-        </ThreeDIconWrapper>
-      </Hex>
-    </div>
-  );
-}
-
-/* ========= Nav الرئيسي ========= */
-
+/* ─── Main ─── */
 export function MobileBottomNav({ activeSection, onChange }: Props) {
-  const { t } = useLanguage();
+  const { language } = useLanguage();
+  const isAr = language === "ar";
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const tr = (key: string, fallback: string) => {
-    try {
-      const v = typeof t === "function" ? (t as any)(key) : "";
-      if (!v || v === key) return fallback;
-      return v;
-    } catch {
-      return fallback;
-    }
-  };
-
-  // ✅ الأزرار الأساسية: التمارين، التغذية، فِتْبوت، المزيد
-  const bottomItems: NavItem[] = [
-    { id: "exercises", label: tr("exercises", "التمارين"), icon: WorkoutIcon },
-    { id: "nutrition", label: tr("nutrition", "التغذية"), icon: Salad },
-    { id: "fitbot", label: tr("fitbot", "فِتْبوت"), icon: FitBotIcon }, // ✅ جديد
-    { id: "more", label: tr("more", "المزيد"), icon: MoreHorizontal },
+  const bottomItems: NavConfig[] = [
+    { id: "exercises",  labelAr: "تمارين",  labelEn: "Workout",   emoji: "🏋️",  color: "#59f20d" },
+    { id: "nutrition",  labelAr: "تغذية",   labelEn: "Nutrition",  emoji: "🥗",  color: "#34d399" },
+    { id: "fitbot",     labelAr: "فِتْبوت", labelEn: "FitBot",    emoji: "🤖",  color: "#60a5fa" },
+    { id: "more",       labelAr: "المزيد",   labelEn: "More",      emoji: "✦",   color: "#a78bfa" },
   ];
 
-  // ✅ «المزيد» يحتوي خطتي + الملف الشخصي + الباقي
-  const moreItems: NavItem[] = [
-    { id: "plans", label: tr("plans", "خططي"), icon: PlansIcon }, // ✅ انتقل هنا
-    {
-      id: "profile",
-      label: tr("profile", "الملف الشخصي"),
-      icon: AccountIcon,
-    },
-    { id: "supplements", label: tr("supplements", "المكملات"), icon: Pill },
-    { id: "coaches", label: tr("coaches", "المدربون"), icon: Users },
-    { id: "health", label: tr("health", "الصحة"), icon: HeartPulse },
-    { id: "calculator", label: tr("calculator", "حاسبات"), icon: Calculator },
-    {
-      id: "coachPlans",
-      label: tr("coach_plans", "خطط المتدربين"),
-      icon: ClipboardList,
-    },
+  const moreItems: NavConfig[] = [
+    { id: "plans",      labelAr: "خططي",           labelEn: "My Plans",    emoji: "📋", color: "#59f20d" },
+    { id: "supplements",labelAr: "المكملات",        labelEn: "Supplements", emoji: "💊", color: "#fbbf24" },
+    { id: "coaches",    labelAr: "المدربون",        labelEn: "Coaches",     emoji: "👤", color: "#60a5fa" },
+    { id: "health",     labelAr: "الصحة",          labelEn: "Health",      emoji: "❤️", color: "#fb7185" },
+    { id: "calculator", labelAr: "حاسبات",         labelEn: "Calculator",  emoji: "🧮", color: "#34d399" },
+    { id: "coachPlans", labelAr: "خطط المتدربين", labelEn: "Client Plans",emoji: "📅", color: "#a78bfa" },
   ];
 
-  const handleBottomClick = (item: NavItem) => {
-    if (item.id === "more") {
-      setMoreOpen((o) => !o);
-      return;
-    }
-    setMoreOpen(false);
-    onChange(item.id as SectionId);
-  };
-
-  const handleMoreClick = (item: NavItem) => {
-    setMoreOpen(false);
-    onChange(item.id as SectionId);
-  };
-
-  const isAnyMoreActive = moreItems.some((i) => i.id === activeSection);
   const isHomeActive = activeSection === "dashboard";
+  const isAnyMoreActive = moreItems.some((i) => i.id === activeSection);
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50">
-        <div className="mx-auto max-w-7xl">
-          <div
-            className="
-              relative border-t shadow-[0_-18px_48px_rgba(0,0,0,0.12)]
-              bg-white text-zinc-900 border-herb-100
-              dark:bg-[#0c0c0c] dark:text-slate-100 dark:border-white/10 dark:shadow-[0_-18px_48px_rgba(0,0,0,0.9)]
-            "
-          >
-            <div
-              className="h-[2px] w-full"
-              style={{
-                background:
-                  "linear-gradient(to right, transparent, #59f20d, transparent)",
-              }}
-            />
-
-            <FloatingHex active={isHomeActive} />
-            <button
-              className="absolute -top-10 left-1/2 -translate-x-1/2 z-30 w-16 h-16 outline-none focus:outline-none bg-transparent"
-              type="button"
-              onClick={() => {
-                setMoreOpen(false);
-                onChange("dashboard");
-              }}
-            />
-
-            <div className="px-4 pt-5 pb-3 flex items-stretch justify-center">
-              {bottomItems.map((item, index) => {
-                const Icon = item.icon;
-                const active =
-                  item.id === "more"
-                    ? isAnyMoreActive
-                    : activeSection === item.id;
-
-                let extraMarginClass = "";
-                if (index === 0) extraMarginClass = "mr-1 sm:mr-2";
-                if (index === 1) extraMarginClass = "ml-1 sm:ml-2";
-                if (index === 2) extraMarginClass = "mr-1 sm:mr-2";
-                if (index === 3) extraMarginClass = "ml-1 sm:ml-2";
-
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleBottomClick(item)}
-                    type="button"
-                    className={cn(
-                      "flex-1 flex items-center justify-center bg-transparent outline-none focus:outline-none",
-                      extraMarginClass
-                    )}
-                  >
-                    <Hex active={active} size={70}>
-                      <div className="flex flex-col items-center justify-center gap-1">
-                        <ThreeDIconWrapper active={active}>
-                          <Icon className="w-5 h-5" strokeWidth={2.6} />
-                        </ThreeDIconWrapper>
-                        <span
-                          className={cn(
-                            "text-[9px] sm:text-[10px] font-semibold leading-none",
-                            active
-                              ? "text-neon-400"
-                              : "text-slate-500 dark:text-slate-300"
-                          )}
-                        >
-                          {item.label}
-                        </span>
-                      </div>
-                    </Hex>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="h-[env(safe-area-inset-bottom)]" />
-          </div>
-        </div>
-      </nav>
-
+      {/* More Drawer */}
       {moreOpen && (
-        <div
-          className="md:hidden fixed inset-0 z-40"
-          aria-hidden="true"
-          onClick={() => setMoreOpen(false)}
-        >
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-
+        <div className="md:hidden fixed inset-0 z-40" onClick={() => setMoreOpen(false)}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-lg" />
           <div
-            className="absolute bottom-[88px] left-0 right-0 mx-auto max-w-7xl px-3"
+            className="absolute left-0 right-0 px-3"
+            style={{ bottom: "calc(72px + env(safe-area-inset-bottom))" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="rounded-3xl bg-white border border-slate-200 shadow-soft dark:bg-[#0c0c0c]/95 dark:border-white/10 dark:shadow-[0_26px_80px_rgba(0,0,0,0.9)] p-3 space-y-1.5">
-              {moreItems.map((item) => {
-                const Icon = item.icon;
-                const active = activeSection === item.id;
+            <div style={{
+              borderRadius: 24, overflow: "hidden",
+              background: "linear-gradient(160deg,#1c1c1c,#0e0e0e)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "0 -4px 60px rgba(0,0,0,0.9)",
+            }}>
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#59f20d", boxShadow: "0 0 8px #59f20d" }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                    {isAr ? "القائمة الكاملة" : "Full Menu"}
+                  </span>
+                </div>
+                <button type="button" onClick={() => setMoreOpen(false)}
+                  style={{ width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                  <X style={{ width: 14, height: 14, color: "rgba(255,255,255,0.6)" }} />
+                </button>
+              </div>
 
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleMoreClick(item)}
-                    className={cn(
-                      "w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition bg-transparent outline-none focus:outline-none",
-                      active
-                        ? "bg-emerald-100 border border-[#59f20d] text-emerald-800 dark:bg-[#4ed10a]/15 dark:border-[#59f20d]/60 dark:text-emerald-100"
-                        : "border border-transparent text-slate-700 hover:bg-slate-100 hover:border-slate-200 dark:text-slate-200 dark:hover:bg-white/5 dark:hover:border-white/10"
-                    )}
-                  >
-                    <Hex active={active} size={60}>
-                      <div className="flex flex-col items-center justify-center gap-1">
-                        <ThreeDIconWrapper active={active}>
-                          <Icon className="w-4 h-4" strokeWidth={2.6} />
-                        </ThreeDIconWrapper>
-                      </div>
-                    </Hex>
-                    <span className="font-medium">{item.label}</span>
-                  </button>
-                );
-              })}
+              {/* Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, padding: 12 }}>
+                {moreItems.map((item) => (
+                  <MoreItem key={item.id} config={item}
+                    active={activeSection === item.id}
+                    onClick={() => { setMoreOpen(false); onChange(item.id as SectionId); }} />
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* ─────── NAV BAR ─────── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50">
+        <div style={{ height: 1, background: "linear-gradient(to right, transparent, rgba(89,242,13,0.55), transparent)" }} />
+
+        <div style={{
+          background: "linear-gradient(180deg, #161616 0%, #0d0d0d 100%)",
+          borderTop: "1px solid rgba(255,255,255,0.07)",
+          boxShadow: "0 -12px 50px rgba(0,0,0,0.9)",
+          paddingBottom: "env(safe-area-inset-bottom)",
+          position: "relative", overflow: "visible",
+        }}>
+          {/* Center glow */}
+          <div style={{
+            position: "absolute", top: -24, left: "50%", transform: "translateX(-50%)",
+            width: 140, height: 80,
+            background: `radial-gradient(ellipse, rgba(89,242,13,${isHomeActive ? "0.12" : "0.05"}), transparent 70%)`,
+            pointerEvents: "none", transition: "all 0.5s ease",
+          }} />
+
+          <div style={{ display: "flex", alignItems: "flex-end", overflow: "visible" }}>
+            {/* Left 2 */}
+            {bottomItems.slice(0, 2).map((item) => (
+              <TabButton key={item.id} config={item}
+                active={activeSection === item.id}
+                onClick={() => { setMoreOpen(false); onChange(item.id as SectionId); }} />
+            ))}
+
+            {/* ── HOME (elevated) ── */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 76, position: "relative", paddingBottom: 6 }}>
+              {/* Bridge */}
+              <div style={{
+                position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)",
+                width: 56, height: 28,
+                background: "linear-gradient(180deg, #161616, #0d0d0d)",
+                borderRadius: "0 0 12px 12px", zIndex: 0,
+              }} />
+
+              <button
+                type="button"
+                onClick={() => { setMoreOpen(false); onChange("dashboard"); }}
+                style={{
+                  position: "relative", zIndex: 2,
+                  marginTop: -22, width: 58, height: 58, borderRadius: "50%",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  outline: "none",
+                  background: isHomeActive
+                    ? "linear-gradient(135deg, #70ff1e, #59f20d, #3ab808)"
+                    : "linear-gradient(135deg, #252525, #181818)",
+                  boxShadow: isHomeActive
+                    ? "0 0 0 3px rgba(89,242,13,0.35), 0 0 28px rgba(89,242,13,0.65), 0 -4px 20px rgba(89,242,13,0.35)"
+                    : "0 0 0 2px rgba(89,242,13,0.2), 0 -4px 20px rgba(0,0,0,0.8)",
+                  transition: "all 0.4s cubic-bezier(0.34,1.56,0.64,1)",
+                  transform: isHomeActive ? "translateY(-4px) scale(1.08)" : "translateY(0) scale(1)",
+                }}
+              >
+                {isHomeActive && (
+                  <div className="animate-ping" style={{
+                    position: "absolute", inset: -4, borderRadius: "50%",
+                    background: "#59f20d", opacity: 0.18,
+                  }} />
+                )}
+                <span style={{ fontSize: 28, lineHeight: 1, userSelect: "none",
+                  filter: isHomeActive ? "brightness(0) invert(0)" : "drop-shadow(0 0 8px rgba(89,242,13,0.7))"
+                }} aria-hidden>
+                  {isHomeActive ? "🏠" : "🏡"}
+                </span>
+              </button>
+
+              <span style={{
+                fontSize: 11, fontWeight: 700, marginTop: 5, lineHeight: 1,
+                color: isHomeActive ? "#59f20d" : "rgba(255,255,255,0.42)",
+                textShadow: isHomeActive ? "0 0 10px #59f20dbb" : "none",
+                transition: "all 0.3s ease",
+              }}>
+                {isAr ? "الرئيسية" : "Home"}
+              </span>
+            </div>
+
+            {/* Right 2 */}
+            {bottomItems.slice(2).map((item) => {
+              const isMoreAct = item.id === "more" ? (isAnyMoreActive || moreOpen) : activeSection === item.id;
+              return (
+                <TabButton key={item.id} config={item} active={isMoreAct}
+                  onClick={() => {
+                    if (item.id === "more") { setMoreOpen((o) => !o); return; }
+                    setMoreOpen(false);
+                    onChange(item.id as SectionId);
+                  }} />
+              );
+            })}
+          </div>
+        </div>
+      </nav>
     </>
   );
 }
