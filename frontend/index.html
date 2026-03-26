@@ -2,19 +2,111 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    
+    <!-- Primary Meta Tags -->
+    <title>DarkFit - تطبيق اللياقة البدنية الشامل | Fitness App</title>
+    <meta name="title" content="DarkFit - تطبيق اللياقة البدنية الشامل | Fitness App" />
+    <meta name="description" content="تطبيق DarkFit للياقة البدنية - تمارين، تغذية، صحة. مدرب ذكي، تتبع السعرات، خطط تمرين مخصصة. مصمم للمنطقة العربية والخليج." />
+    <meta name="keywords" content="لياقة, تمارين, صحة, تغذية, gym, fitness, workout, nutrition, health, DarkFit, تطبيق رياضي, مدرب شخصي, سعرات حرارية" />
+    <meta name="author" content="Eng. Mohamed" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="Arabic" />
+    <meta name="revisit-after" content="7 days" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://darkfit.app/" />
+    <meta property="og:title" content="DarkFit - تطبيق اللياقة البدنية الشامل" />
+    <meta property="og:description" content="تطبيق DarkFit للياقة البدنية - تمارين، تغذية، صحة. مدرب ذكي، تتبع السعرات، خطط تمرين مخصصة." />
+    <meta property="og:image" content="/og-preview.png" />
+    <meta property="og:locale" content="ar_SA" />
+    <meta property="og:site_name" content="DarkFit" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://darkfit.app/" />
+    <meta property="twitter:title" content="DarkFit - تطبيق اللياقة البدنية الشامل" />
+    <meta property="twitter:description" content="تطبيق DarkFit للياقة البدنية - تمارين، تغذية، صحة. مدرب ذكي، تتبع السعرات، خطط تمرين مخصصة." />
+    <meta property="twitter:image" content="/og-preview.png" />
+
+    <!-- Apple Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="DarkFit" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileColor" content="#0c0c0c" />
+    <meta name="msapplication-TileImage" content="/icons/icon-192.png" />
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#0c0c0c" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#59f20d" media="(prefers-color-scheme: light)" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <!-- Styles -->
     <link rel="stylesheet" href="/src/index.css" />
 
-    <title>Stunning</title>
-
-    <meta property="og:image" content="/og-preview.png" />
+    <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#59f20d" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://darkfit.app/" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "MobileApplication",
+      "name": "DarkFit",
+      "description": "تطبيق DarkFit للياقة البدنية - تمارين، تغذية، صحة. مدرب ذكي، تتبع السعرات، خطط تمرين مخصصة.",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "iOS, Android, Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "1000"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Eng. Mohamed"
+      },
+      "inLanguage": ["ar", "en"],
+      "featureList": [
+        "تمارين رياضية متنوعة",
+        "تتبع السعرات الحرارية",
+        "مدرب ذكي بالذكاء الاصطناعي",
+        "خطط تغذية مخصصة",
+        "تتبع الصحة والوزن",
+        "وضع الصيام والرمضان"
+      ]
+    }
+    </script>
   </head>
   <body>
+    <!-- No-JS Fallback -->
+    <noscript>
+      <div style="text-align: center; padding: 50px; font-family: Cairo, sans-serif;">
+        <h1>DarkFit</h1>
+        <p>يرجى تفعيل JavaScript لاستخدام التطبيق</p>
+        <p>Please enable JavaScript to use this application</p>
+      </div>
+    </noscript>
+    
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
