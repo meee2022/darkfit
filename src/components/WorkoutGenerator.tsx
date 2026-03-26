@@ -16,6 +16,7 @@ import {
     Activity,
     Flame,
 } from "lucide-react";
+import { useHotClimateActive } from "./HotClimateWidget";
 
 type Goal = "bulk" | "cut" | "strength" | "flexibility";
 type Difficulty = "all" | "beginner" | "intermediate" | "advanced";
@@ -71,6 +72,7 @@ export function WorkoutGenerator() {
     const [workoutDone, setWorkoutDone] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
+    const fastingSettings = useQuery(api.fasting.getSettings);
     const logWorkout = useMutation(api.exercises.logWorkoutSession);
 
     const dbMuscle = useMemo(() => {
@@ -91,11 +93,30 @@ export function WorkoutGenerator() {
             : "skip"
     );
 
+    const isHotClimate = useHotClimateActive();
+
     const limitedExercises = useMemo(() => {
         if (!exercises) return exercises;
+        let filtered = exercises;
+        
+        // Hot Climate filtering: Remove outdoor exercises
+        if (isHotClimate) {
+            filtered = filtered.filter(ex => {
+                // If isOutdoor is explicitly set to true, filter it out
+                if (ex.isOutdoor === true) return false;
+                
+                // Fallback: check keywords in English name/description
+                const outdoorKeywords = ["running", "jogging", "cycling", "walking", "outdoor"];
+                const text = (ex.name + " " + ex.description).toLowerCase();
+                if (outdoorKeywords.some(k => text.includes(k))) return false;
+                
+                return true;
+            });
+        }
+
         const limit = selectedMuscles[0] ? getExerciseLimit(selectedMuscles[0]) : 5;
-        return exercises.slice(0, limit);
-    }, [exercises, selectedMuscles]);
+        return filtered.slice(0, limit);
+    }, [exercises, selectedMuscles, isHotClimate]);
 
     /* ── Goals config ── */
     const goals: {
@@ -523,6 +544,39 @@ export function WorkoutGenerator() {
                             {/* Cards */}
                             {limitedExercises && limitedExercises.length > 0 && (
                                 <div className="space-y-4">
+                                  {/* Fasting Awareness Alert */}
+                                  {fastingSettings?.mode && fastingSettings.mode !== "off" && (
+                                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3">
+                                      <span className="text-xl">🌙</span>
+                                      <div>
+                                        <h4 className="text-amber-500 font-bold text-sm">
+                                          {isAr ? "تنبيه الصيام" : "Fasting Alert"}
+                                        </h4>
+                                        <p className="text-amber-500/80 text-xs mt-1 leading-relaxed">
+                                          {fastingSettings.autoReduceIntensity 
+                                            ? (isAr ? "أنت في وضع الصيام. يُنصح بتقليل الأوزان بنسبة 20% والتركيز على الأداء الحركي وتجنب الإجهاد." : "You are in fasting mode. We recommend reducing weights by 20% and focusing on form.")
+                                            : (isAr ? "تذكر شرب الماء الكافي في وقت الإفطار وتجنب الإجهاد العالي أثناء الصيام." : "Remember to drink enough water during eating window and avoid high exertion while fasting.")}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Hot Climate Awareness Alert */}
+                                  {isHotClimate && (
+                                    <div className="bg-orange-500/10 border border-orange-500/30 rounded-2xl p-4 flex items-start gap-3 shadow-[0_0_20px_rgba(255,100,0,0.05)]">
+                                      <span className="text-xl">🌡️</span>
+                                      <div>
+                                        <h4 className="text-orange-500 font-bold text-sm">
+                                          {isAr ? "تنبيه الحرارة الشديدة" : "Extreme Heat Alert"}
+                                        </h4>
+                                        <p className="text-orange-500/80 text-xs mt-1 leading-relaxed">
+                                          {isAr 
+                                            ? "أجواء شديدة الحرارة اليوم. تم استبعاد التمارين الخارجية. يُنصح بالتمرين قبل 7 صباحاً أو بعد 8 مساءً وزيادة شرب الماء." 
+                                            : "Extreme heat detected. Outdoor exercises have been filtered out. We recommend training before 7 AM or after 8 PM."}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  )}
 
                                   {/* Workout session progress bar */}
                                   {workoutStarted && !workoutDone && (

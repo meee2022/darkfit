@@ -627,3 +627,21 @@ export const listAllProfiles = query({
     }));
   },
 });
+
+export const setOnboardingCompleted = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .first();
+
+    if (!profile) throw new Error("Profile not found");
+
+    await ctx.db.patch(profile._id, { onboardingCompleted: true });
+    return true;
+  },
+});

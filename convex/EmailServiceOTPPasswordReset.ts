@@ -7,50 +7,43 @@ function randomNumericCode(length = 6) {
   return out;
 }
 
-async function callEmailService(payload: { email: string; code: string }) {
-  const baseUrl = process.env.EMAIL_SERVICE_URL;
-  const token = process.env.EMAIL_SERVICE_TOKEN;
+async function sendViaNetlify(payload: { email: string; code: string }) {
+  const token = process.env.EMAIL_SERVICE_TOKEN || "";
 
-  if (!baseUrl) {
-    console.warn("EMAIL_SERVICE_URL not configured, skipping email");
-    return;
-  }
-  if (!token) {
-    console.warn("EMAIL_SERVICE_TOKEN not configured, skipping email");
-    return;
-  }
-
-  const url = `${baseUrl.replace(/\/$/, "")}/.netlify/functions/send-reset`;
-
-  const res = await fetch(url, {
+  const res = await fetch("https://email.mohamedapp.online/.netlify/functions/send-reset", {
     method: "POST",
-    headers: {
+    headers: { 
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      email: payload.email,
+      code: payload.code,
+      appName: "DarkFit",
+    }),
   });
 
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
-    throw new Error(`Email service failed: ${res.status} ${txt}`);
+    throw new Error(`Netlify function failed: ${res.status} ${txt}`);
   }
 }
 
 /**
- * ✅ Custom email provider for password reset
+ * ✅ Custom email provider for password reset using custom Netlify Endpoint
  */
 export const EmailServiceOTPPasswordReset = {
   id: "email-service-reset",
   type: "email" as const,
   name: "Email Service Reset",
-  
+
   async generateVerificationToken() {
     return randomNumericCode(6);
   },
-  
+
   async sendVerificationRequest({ identifier: email, token }: any) {
-    console.log(`Reset code for ${email}: ${token}`);
-    await callEmailService({ email, code: token });
+    console.log(`📧 Sending reset code to ${email}`);
+    await sendViaNetlify({ email, code: token });
+    console.log(`✅ Reset code sent to ${email}`);
   },
 };

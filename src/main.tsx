@@ -3,6 +3,7 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import "./index.css";
 import App from "./App";
+import { Toaster } from "sonner";
 import { I18nProvider } from "./lib/i18n";
 import { ThemeProvider } from "./lib/theme";
 import { BrowserRouter } from "react-router-dom";
@@ -76,6 +77,7 @@ if (!convexUrl) {
         <I18nProvider>
           <BrowserRouter>
             <App />
+            <Toaster position="top-center" richColors />
           </BrowserRouter>
         </I18nProvider>
       </ThemeProvider>

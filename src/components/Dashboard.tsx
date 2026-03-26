@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -20,8 +20,24 @@ import {
   ClipboardList,
   User,
   X,
+  Phone,
+  Bell,
+  AlertTriangle,
+  Award,
+  Info,
+  Sparkles,
+  CheckCircle,
 } from "lucide-react";
 import { useLanguage } from "../lib/i18n";
+import { getTimeBasedNotifications, getNotificationSettings } from "./NotificationManager";
+import { FastingWidget } from "./FastingWidget";
+import { StrengthProgressionChart } from "./StrengthProgressionChart";
+import { XPBar } from "./XPBar";
+import { PrayerTimesWidget } from "./PrayerTimesWidget";
+import { HotClimateWidget } from "./HotClimateWidget";
+import { WorkoutOfTheDay } from "./WorkoutOfTheDay";
+import { PRBoard } from "./PRBoard";
+import { WeeklyReportCard } from "./WeeklyReportCard";
 
 type SectionId =
   | "dashboard"
@@ -256,9 +272,9 @@ function ModernSectionCard({
         </p>
 
         {/* Arrow and Text */}
-        <div className="flex items-center justify-end gap-2 text-[#59f20d] text-sm font-bold pt-1">
-          <ArrowRight className="w-4 h-4 group-hover:-translate-x-1 transition-transform rotate-180" />
+        <div className="flex items-center justify-start gap-2 text-[#59f20d] text-sm font-bold pt-1 flex-row-reverse w-fit ml-auto">
           <span>{exploreLabel}</span>
+          <ArrowRight className="w-4 h-4 rtl:rotate-180 group-hover:rtl:-translate-x-1 transition-transform" />
         </div>
       </div>
     </button>
@@ -294,13 +310,153 @@ export function Dashboard({
   const isAr = language === "ar";
 
   const [showAllSectionsModal, setShowAllSectionsModal] = React.useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    }
+    if (showNotifications) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showNotifications]);
 
   const userProfile = useQuery(api.profiles.getCurrentProfile);
   const streaks = useQuery(api.userProgress.getStreaks);
   const dashboardStats = useQuery(api.userProgress.getDashboardStats);
+  const weightHistory = useQuery(api.userProgress.getWeightHistory);
+
+  // Tick every minute to refresh time-based notifications
+  const [clockTick, setClockTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setClockTick(t => t + 1), 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // === Auto-generated notifications ===
+  const notifications = useMemo(() => {
+    const items: { id: string; type: "warning" | "praise" | "tip" | "info" | "meal" | "water"; icon: React.ReactNode; title: string; message: string; time: string; action?: string }[] = [];
+
+    const settings = getNotificationSettings();
+    const currentStreak = streaks?.currentStreak ?? 0;
+    const daysSinceLastWorkout = streaks?.daysSinceLastWorkout ?? 0;
+    const comp = dashboardStats?.completion ?? 0;
+    const sessions = dashboardStats?.totalSessions ?? 0;
+
+    // 1) Inactivity warning (only if workout notifications are enabled)
+    if (settings.workout && daysSinceLastWorkout >= 3) {
+      items.push({
+        id: "inactivity",
+        type: "warning",
+        icon: <AlertTriangle className="w-5 h-5 text-rose-400" />,
+        title: isAr ? "⚠️ تنبيه عدم التمرين" : "⚠️ Inactivity Alert",
+        message: isAr
+          ? `لم تتمرن منذ ${daysSinceLastWorkout} أيام! جسمك يحتاج للحركة، عد للتمرين اليوم.`
+          : `You haven't trained in ${daysSinceLastWorkout} days! Your body needs movement.`,
+        time: isAr ? "الآن" : "Now",
+        action: "exercises",
+      });
+    } else if (settings.workout && daysSinceLastWorkout >= 2) {
+      items.push({
+        id: "reminder",
+        type: "info",
+        icon: <Info className="w-5 h-5 text-blue-400" />,
+        title: isAr ? "💪 تذكير بالتمرين" : "💪 Workout Reminder",
+        message: isAr
+          ? `مر يومان بدون تمرين. لا تفقد زخمك، تمرن اليوم!`
+          : `2 days without training. Don't lose momentum!`,
+        time: isAr ? "اليوم" : "Today",
+        action: "exercises",
+      });
+    }
+
+    // 2) Streak praise
+    if (currentStreak >= 3) {
+      items.push({
+        id: "streak",
+        type: "praise",
+        icon: <Award className="w-5 h-5 text-[#59f20d]" />,
+        title: isAr ? "🔥 سلسلة رائعة!" : "🔥 Great Streak!",
+        message: isAr
+          ? `أنت في سلسلة ${currentStreak} أيام متتالية! استمر ولا تتوقف.`
+          : `You're on a ${currentStreak}-day streak! Keep it up!`,
+        time: isAr ? "مستمر" : "Ongoing",
+      });
+    }
+
+    // 3) Low weekly completion
+    if (comp > 0 && comp < 50) {
+      items.push({
+        id: "low_completion",
+        type: "warning",
+        icon: <TrendingUp className="w-5 h-5 text-amber-400" />,
+        title: isAr ? "📊 إنجاز الأسبوع منخفض" : "📊 Low Weekly Completion",
+        message: isAr
+          ? `إنجازك الأسبوعي ${comp}% فقط. زِد من معدل تمارينك لتحقيق هدفك.`
+          : `Your weekly completion is only ${comp}%. Increase your training rate.`,
+        time: isAr ? "هذا الأسبوع" : "This week",
+        action: "workoutGenerator",
+      });
+    }
+
+    // 4) Welcome / Smart Coach tip
+    if (sessions === 0) {
+      items.push({
+        id: "welcome",
+        type: "tip",
+        icon: <Sparkles className="w-5 h-5 text-purple-400" />,
+        title: isAr ? "✨ مرحباً بك في DARK FIT!" : "✨ Welcome to DARK FIT!",
+        message: isAr
+          ? "ابدأ رحلتك الآن! أنشئ أول تمرين لك واستكشف المدرب الذكي."
+          : "Start your journey! Create your first workout and explore the Smart Coach.",
+        time: isAr ? "جديد" : "New",
+        action: "workoutGenerator",
+      });
+    } else {
+      items.push({
+        id: "coach_tip",
+        type: "tip",
+        icon: <Sparkles className="w-5 h-5 text-purple-400" />,
+        title: isAr ? "🧠 نصيحة المدرب الذكي" : "🧠 Smart Coach Tip",
+        message: isAr
+          ? "سجّل فحصك اليومي في المدرب الذكي لتحصل على تحليل دقيق لاستشفائك."
+          : "Log your daily check-in for accurate recovery analysis.",
+        time: isAr ? "يومي" : "Daily",
+        action: "smartCoach",
+      });
+    }
+
+    // 5) Time-based meal & water notifications
+    const timeNotifs = getTimeBasedNotifications(isAr);
+    for (const tn of timeNotifs) {
+      items.push({
+        id: tn.id,
+        type: tn.type,
+        icon: <span className="text-lg">{tn.icon}</span>,
+        title: tn.title,
+        message: tn.message,
+        time: tn.time,
+        action: "nutrition",
+      });
+    }
+
+    return items.filter(n => !dismissedIds.includes(n.id));
+  }, [streaks, dashboardStats, isAr, dismissedIds, clockTick]);
+
+  const unreadCount = notifications.length;
 
   // Sections Meta Data
   const ALL_SECTIONS = useMemo(() => [
+    { 
+      id: "smartCoach", 
+      title: tr("smartCoach", "المدرب الذكي"), 
+      desc: isAr ? "تحليل حيوي وتوجيهات تعتمد على الذكاء الاصطناعي لحالتك" : "AI-driven telemetry and personalized coaching insights",
+      img: "/img/darkfit_smart_coach.png"
+    },
     { 
       id: "exercises", 
       title: tr("exercises", "التمارين"), 
@@ -354,7 +510,25 @@ export function Dashboard({
       title: tr("fitbot", "المساعد الذكي"), 
       desc: isAr ? "اطرح أسئلتك على مدربك الذكي واحصل على نصائح فورية" : "Ask your AI fitness coach for instant advice",
       img: "/ai_assistant_banner_darkfit.png"
-    }
+    },
+    { 
+      id: "social", 
+      title: isAr ? "المجتمع والتحديات" : "Social & Challenges", 
+      desc: isAr ? "تنافس مع الآخرين وأنجز التحديات الأسبوعية وتصدر لوحة المتصدرين" : "Compete, complete challenges, and lead the leaderboard",
+      img: "/img/darkfit_exercises_1773164750598.png"
+    },
+    { 
+      id: "workoutHistory", 
+      title: isAr ? "سجل التمارين" : "Workout History", 
+      desc: isAr ? "استعرض كل تمارينك السابقة مع تفاصيل الأوزان والتكرارات والأرقام القياسية" : "Browse all past workouts with weights, reps, and PR history",
+      img: "/img/darkfit_generator_1773165550431.png"
+    },
+    { 
+      id: "messages", 
+      title: isAr ? "الدردشة مع المدرب" : "Coach Chat", 
+      desc: isAr ? "تواصل مباشرة مع مدربك للحصول على استشارات ومتابعة فورية" : "Direct line to your coach for instant guidance and support",
+      img: "/img/active_clients.png" // Fallback image
+    },
   ], [isAr, language]);
 
   const totalSessions = dashboardStats?.totalSessions || 0;
@@ -363,7 +537,10 @@ export function Dashboard({
   const completion = dashboardStats?.completion || 0;
 
   const bmiData = useMemo(() => {
-    const w = userProfile?.currentWeight;
+    const latestWeight = weightHistory && weightHistory.length > 0
+      ? weightHistory[weightHistory.length - 1].weight
+      : null;
+    const w = latestWeight || userProfile?.currentWeight || userProfile?.weight;
     const h = userProfile?.height;
     if (!w || !h || h === 0) return null;
     const bmi = (w / (h / 100) ** 2).toFixed(1);
@@ -377,7 +554,7 @@ export function Dashboard({
             ? tr("bmi_overweight", "زائد")
             : tr("bmi_obese", "سمنة");
     return { bmi, category };
-  }, [userProfile]);
+  }, [userProfile, weightHistory]);
 
   const fitnessLevelLabel = useMemo(() => {
     const lvl = userProfile?.fitnessLevel;
@@ -395,6 +572,11 @@ export function Dashboard({
 
   return (
     <div dir={isAr ? "rtl" : "ltr"} className="space-y-6 min-h-screen bg-[#0c0c0c] px-3 sm:px-4 lg:px-0 py-4 sm:py-6">
+      <FastingWidget />
+
+      {/* XP / GAMIFICATION BAR */}
+      <XPBar />
+
       {/* ENHANCED HERO SECTION */}
       {/* ENHANCED HERO SECTION - RTL MOCKUP MATCH */}
       <div className="relative overflow-hidden">
@@ -402,8 +584,90 @@ export function Dashboard({
         <div className="relative z-10 px-2 sm:px-6">
           <div className="flex flex-col gap-6 w-full">
             
-            {/* Header Row: Welcome Text & Active Status */}
+            {/* Header Row: Welcome Text & Active Status + Notification Bell */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full gap-4">
+
+              {/* Notification Bell - Top Corner */}
+              <div className="absolute top-0 left-0 z-30" ref={notifRef} dir="ltr">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative w-11 h-11 rounded-full bg-zinc-900/80 border border-white/10 hover:border-[#59f20d]/50 flex items-center justify-center transition-all hover:bg-zinc-800"
+                >
+                  <Bell className="w-5 h-5 text-white/70" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-[10px] font-black text-white shadow-lg animate-pulse">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notification Dropdown */}
+                {showNotifications && (
+                  <div className="absolute top-14 left-0 w-[340px] sm:w-[380px] max-h-[70vh] overflow-y-auto bg-[#111] border border-white/10 rounded-2xl shadow-2xl shadow-black/60 z-50">
+                    {/* Dropdown Header */}
+                    <div className="sticky top-0 z-10 bg-[#111] border-b border-white/10 px-4 py-3 flex items-center justify-between">
+                      <h3 className="text-sm font-black text-white flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-[#59f20d]" />
+                        {isAr ? "الإشعارات" : "Notifications"}
+                      </h3>
+                      {notifications.length > 0 && (
+                        <button
+                          onClick={() => setDismissedIds(notifications.map(n => n.id))}
+                          className="text-[10px] font-bold text-zinc-500 hover:text-[#59f20d] transition-colors"
+                        >
+                          {isAr ? "مسح الكل" : "Clear All"}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Notification Items */}
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <CheckCircle className="w-10 h-10 text-[#59f20d]/30 mx-auto mb-3" />
+                        <p className="text-sm text-zinc-500 font-medium">
+                          {isAr ? "لا توجد إشعارات جديدة 🎉" : "No new notifications 🎉"}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-white/5">
+                        {notifications.map((notif) => (
+                          <div
+                            key={notif.id}
+                            className={`px-4 py-3.5 hover:bg-white/5 transition-colors cursor-pointer flex items-start gap-3 ${
+                              notif.type === "warning" ? "border-l-2 border-l-rose-500" :
+                              notif.type === "praise" ? "border-l-2 border-l-[#59f20d]" :
+                              notif.type === "tip" ? "border-l-2 border-l-purple-500" :
+                              notif.type === "meal" ? "border-l-2 border-l-orange-400" :
+                              notif.type === "water" ? "border-l-2 border-l-cyan-400" :
+                              "border-l-2 border-l-blue-500"
+                            }`}
+                            onClick={() => {
+                              if (notif.action) onNavigate?.(notif.action as any);
+                              setShowNotifications(false);
+                            }}
+                          >
+                            <div className="mt-0.5 shrink-0">{notif.icon}</div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-white leading-tight">{notif.title}</p>
+                              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{notif.message}</p>
+                              <p className="text-[10px] text-zinc-600 font-bold mt-1.5 uppercase tracking-wider">{notif.time}</p>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDismissedIds(prev => [...prev, notif.id]);
+                              }}
+                              className="shrink-0 mt-0.5 w-6 h-6 rounded-full hover:bg-white/10 flex items-center justify-center transition-all"
+                            >
+                              <X className="w-3 h-3 text-zinc-500" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               
               <div className="flex flex-col items-start w-full text-start">
                 
@@ -466,7 +730,7 @@ export function Dashboard({
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mt-2 w-full">
               <ModernStatCard
                 icon={<TrendingUp className="w-5 h-5" />}
-                label={tr("completion", "نسبة الإنجاز")}
+                label={tr("completion", "إنجاز الأسبوع")}
                 value={`${completion}%`}
                 iconColor="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                 variant="progress"
@@ -522,6 +786,48 @@ export function Dashboard({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* QUICK ACTIONS */}
+      <div className="mb-6">
+        <h2 className="text-lg font-black text-white mb-3 flex items-center gap-2">
+          <Zap className="w-5 h-5 text-[#59f20d]" />
+          {isAr ? "إجراءات سريعة" : "Quick Actions"}
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { id: "exercises", icon: "🏋️", label: isAr ? "سجّل تمرين" : "Log Workout", color: "#59f20d" },
+            { id: "nutrition", icon: "🥗", label: isAr ? "سجّل وجبة" : "Log Meal", color: "#fbbf24" },
+            { id: "health", icon: "💧", label: isAr ? "تتبع الصحة" : "Health Tracker", color: "#38bdf8" },
+            { id: "smartCoach", icon: "🤖", label: isAr ? "المدرب الذكي" : "Smart Coach", color: "#a78bfa" },
+          ].map((action) => (
+            <button
+              key={action.id}
+              onClick={() => onNavigate?.(action.id as SectionId)}
+              className="group relative overflow-hidden flex flex-col items-center gap-2 p-4 rounded-2xl border border-white/5 bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/15 transition-all duration-300 hover:-translate-y-0.5"
+            >
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: `radial-gradient(circle at center, ${action.color}10, transparent 70%)` }} />
+              <span className="text-2xl relative z-10">{action.icon}</span>
+              <span className="text-xs font-bold text-white/70 group-hover:text-white transition-colors relative z-10">{action.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* AI WEEKLY REPORT */}
+      <div className="mb-6">
+        <WeeklyReportCard />
+      </div>
+
+      {/* WOD + PR BOARD */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <WorkoutOfTheDay onNavigate={onNavigate} />
+        <PRBoard />
+      </div>
+
+      {/* STRENGTH PROGRESSION CHART */}
+      <div className="mb-6">
+        <StrengthProgressionChart />
       </div>
 
       {/* COMPACT BMI & PROGRESS CARD - PREMIUM RE-DESIGN */}
@@ -612,7 +918,7 @@ export function Dashboard({
                 title={section.title}
                 description={section.desc}
                 image={section.img}
-                exploreLabel={tr("explore_now", "استكشف الآن")}
+                exploreLabel={tr("enter_section", "دخول القسم")}
                 onClick={() => onNavigate?.(section.id as SectionId)}
               />
             </motion.div>
@@ -631,6 +937,31 @@ export function Dashboard({
             </button>
           </div>
         )}
+      </div>
+
+      {/* PREMIUM FOOTER */}
+      <div className="mt-16 pb-12 flex flex-col items-center justify-center space-y-3 opacity-80" dir={isAr ? "rtl" : "ltr"}>
+        <div className="flex flex-col items-center gap-1">
+          <p className="text-xs font-bold text-white/70 tracking-widest text-center" dir="ltr">
+            &copy; {new Date().getFullYear()} DARK FIT. {isAr ? "جميع الحقوق محفوظة." : "All rights reserved."}
+          </p>
+          <div className="flex items-center justify-center gap-1.5 text-[11px] text-white/50 tracking-[0.1em]">
+            <span>{isAr ? "تطوير وإدارة:" : "Directed by"}</span>
+            <span className="text-[#59f20d] font-black">{isAr ? "المهندس محمد" : "Eng. Mohamed"}</span>
+          </div>
+        </div>
+        
+        <a 
+          href="https://wa.me/97430296555" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="mt-3 flex items-center justify-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 hover:border-[#59f20d]/50 hover:bg-[#59f20d]/10 transition-colors group"
+        >
+          <Phone className="w-3.5 h-3.5 text-zinc-400 group-hover:text-[#59f20d] transition-colors" />
+          <span className="text-xs font-black text-white/80 group-hover:text-white transition-colors tracking-widest" dir="ltr">
+            +974 30296555
+          </span>
+        </a>
       </div>
 
     </div>

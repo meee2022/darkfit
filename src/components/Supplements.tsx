@@ -1,5 +1,5 @@
 // src/components/Supplements.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import {
@@ -169,7 +169,7 @@ function ProductCard({
           onClick={(e) => {
             e.stopPropagation();
           }}
-          className="absolute bottom-3 left-3 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-[#59f20d]/20 hover:border-[#59f20d] transition-all"
+          className="absolute bottom-3 left-3 min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-[#59f20d]/20 hover:border-[#59f20d] transition-all"
         >
           <Heart className="w-5 h-5 text-white" />
         </button>
@@ -188,14 +188,18 @@ function ProductCard({
 
         {/* Tags */}
         <div className="flex flex-wrap gap-2">
-          {(supplement.tags || []).slice(0, 3).map((tag, i) => (
-            <span
-              key={i}
-              className="px-3 py-1 rounded-xl bg-zinc-800/80 text-gray-300 text-xs font-medium"
-            >
-              {tag}
-            </span>
-          ))}
+          {(supplement.tags || []).slice(0, 3).map((tag, i) => {
+            const tagKey = `tag_${tag.toLowerCase().replace(/\s+/g, '_')}`;
+            const translatedTag = isAr ? (tr(tagKey, tag)) : tag;
+            return (
+              <span
+                key={i}
+                className="px-3 py-1 rounded-xl bg-zinc-800/80 text-gray-300 text-xs font-medium"
+              >
+                {translatedTag}
+              </span>
+            );
+          })}
         </div>
 
         {/* Action Button */}
@@ -253,6 +257,13 @@ export function Supplements() {
   const [selected, setSelected] = useState<Supplement | null>(null);
   const [evidenceFilter, setEvidenceFilter] = useState<EvidenceLevel | "all">("all");
 
+  useEffect(() => {
+    if (!selected) {
+      document.body.classList.remove('blur-active', 'modal-open');
+      document.body.style.overflow = '';
+    }
+  }, [selected]);
+
   const rows = useQuery(api.supplements.listPublic, {
     q: query.trim() ? query.trim() : undefined,
     category: activeCat === "all" ? undefined : (activeCat as any),
@@ -304,11 +315,11 @@ export function Supplements() {
           </div>
 
           {/* Category Filters */}
-          <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide" dir={isRTL ? "rtl" : "ltr"}>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 pb-2" dir={isRTL ? "rtl" : "ltr"}>
             <button
               onClick={() => setActiveCat("all")}
               className={cn(
-                "px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap transition-all",
+                "px-4 py-2 sm:px-6 sm:py-3 rounded-2xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all flex-1 sm:flex-none justify-center",
                 activeCat === "all"
                   ? "bg-[#59f20d] text-black shadow-[0_0_20px_rgba(89,242,13,0.4)]"
                   : "bg-zinc-900 text-gray-300 border border-zinc-800/60 hover:border-[#59f20d]/50"
@@ -319,37 +330,37 @@ export function Supplements() {
             <button
               onClick={() => setActiveCat("performance")}
               className={cn(
-                "px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap transition-all flex items-center gap-2",
+                "px-4 py-2 sm:px-6 sm:py-3 rounded-2xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all flex items-center justify-center gap-1.5 sm:gap-2",
                 activeCat === "performance"
                   ? "bg-[#59f20d] text-black shadow-[0_0_20px_rgba(89,242,13,0.4)]"
                   : "bg-[#1a2318] text-gray-300 border border-[#2a3528] hover:border-[#59f20d]/50"
               )}
             >
-              <TrendingUp className="w-4 h-4" />
+              <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               {catLabel("performance", isRTL)}
             </button>
             <button
               onClick={() => setActiveCat("health")}
               className={cn(
-                "px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap transition-all flex items-center gap-2",
+                "px-4 py-2 sm:px-6 sm:py-3 rounded-2xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all flex items-center justify-center gap-1.5 sm:gap-2",
                 activeCat === "health"
                   ? "bg-[#59f20d] text-black shadow-[0_0_20px_rgba(89,242,13,0.4)]"
                   : "bg-[#1a2318] text-gray-300 border border-[#2a3528] hover:border-[#59f20d]/50"
               )}
             >
-              <Heart className="w-4 h-4" />
+              <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500" />
               {catLabel("health", isRTL)}
             </button>
             <button
               onClick={() => setActiveCat("recovery")}
               className={cn(
-                "px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap transition-all flex items-center gap-2",
+                "px-4 py-2 sm:px-6 sm:py-3 rounded-2xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all flex items-center justify-center gap-1.5 sm:gap-2",
                 activeCat === "recovery"
                   ? "bg-[#59f20d] text-black shadow-[0_0_20px_rgba(89,242,13,0.4)]"
                   : "bg-zinc-900 text-gray-300 border border-zinc-800/60 hover:border-[#59f20d]/50"
               )}
             >
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
               {catLabel("recovery", isRTL)}
             </button>
           </div>

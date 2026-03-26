@@ -1647,3 +1647,58 @@ export const seedArabicFoods = mutation({
     return { ok: true, addedCount };
   },
 });
+
+/** ✅ Add AI Analyzed meal to log */
+export const addAnalyzedMealToLog = mutation({
+  args: {
+    mealType: MealType,
+    date: v.optional(v.string()),
+    mealNameEn: v.string(),
+    mealNameAr: v.string(),
+    calories: v.number(),
+    protein: v.number(),
+    carbs: v.number(),
+    fat: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+    const date = args.date || todayISO();
+
+    const foodId = await ctx.db.insert("foods", {
+      name: args.mealNameEn,
+      nameAr: args.mealNameAr,
+      caloriesPer100g: args.calories,
+      proteinPer100g: args.protein,
+      carbsPer100g: args.carbs,
+      fatPer100g: args.fat,
+      category: "AI Analysis",
+      categoryAr: "تحليل ذكي",
+    });
+
+    const log = await getOrCreateDayLog(ctx, userId, date);
+    if (!log) throw new ConvexError("تعذر إنشاء سجل اليوم");
+
+    const meals = Array.isArray(log.meals) ? [...log.meals] : [];
+    const mi = meals.findIndex((m: any) => m.mealType === args.mealType);
+    if (mi < 0) throw new ConvexError("نوع الوجبة غير صحيح");
+
+    const meal = { ...meals[mi] };
+    const foods = Array.isArray(meal.foods) ? [...meal.foods] : [];
+
+    foods.push({ foodId, quantity: 100, calories: args.calories });
+
+    meal.foods = foods;
+    meal.totalCalories = sumMealCalories(foods);
+    meals[mi] = meal;
+
+    const totalDailyCalories = sumDayCalories(meals);
+
+    await ctx.db.patch(log._id, {
+      meals,
+      totalDailyCalories,
+      updatedAt: Date.now(),
+    });
+
+    return { ok: true, foodId };
+  },
+});

@@ -326,7 +326,7 @@ export function AdminPanel() {
       </div>
 
       {/* TABS */}
-      <div className="flex gap-3 overflow-x-auto pb-2">
+      <div className="flex flex-wrap gap-2 sm:gap-3 pb-2 justify-start">
         {TABS.map((t) => {
           const isActive = activeTab === t.id;
           return (
@@ -335,10 +335,10 @@ export function AdminPanel() {
               type="button"
               onClick={() => setActiveTab(t.id)}
               className={cn(
-                "px-6 py-3 rounded-3xl font-bold text-sm whitespace-nowrap flex-shrink-0 transition-all",
+                "px-4 py-2.5 sm:px-6 sm:py-3 rounded-3xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all flex-grow sm:flex-grow-0 text-center flex items-center justify-center",
                 isActive
-                  ? "bg-[#59f20d] text-black"
-                  : "bg-zinc-900 text-gray-400 hover:bg-zinc-800"
+                  ? "bg-[#59f20d] text-black shadow-[0_0_15px_rgba(89,242,13,0.3)]"
+                  : "bg-zinc-900 text-gray-400 border border-zinc-800/60 hover:bg-zinc-800 hover:border-[#59f20d]/30"
               )}
             >
               {t.label}
@@ -1581,9 +1581,16 @@ function FoodsAdmin() {
               <input
                 className="input"
                 value={form.categoryAr}
-                onChange={(e) =>
-                  setForm((p: any) => ({ ...p, categoryAr: e.target.value }))
-                }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  let suggestedMealType = form.mealType;
+                  if (val.includes("إفطار") || val.includes("فطور")) suggestedMealType = "breakfast";
+                  else if (val.includes("رئيسية") || val.includes("خليجية") || val.includes("لحوم") || val.includes("شاورما") || val.includes("بحري")) suggestedMealType = "lunch_dinner";
+                  else if (val.includes("حلو") || val.includes("مكسرات") || val.includes("سناك") || val.includes("رمضان")) suggestedMealType = "snack";
+                  else if (val.includes("مشروب") || val.includes("سلط") || val.includes("مقبلات") || val.includes("خبز") || val.includes("بروتين")) suggestedMealType = "any";
+
+                  setForm((p: any) => ({ ...p, categoryAr: val, mealType: suggestedMealType }));
+                }}
               />
             </Field>
             <Field label="تصنيف إنجليزي *">
@@ -1606,10 +1613,10 @@ function FoodsAdmin() {
                   setForm((p: any) => ({ ...p, mealType: e.target.value }))
                 }
               >
-                <option value="breakfast">فطور</option>
-                <option value="lunch">غداء</option>
-                <option value="dinner">عشاء</option>
+                <option value="breakfast">إفطار</option>
+                <option value="lunch_dinner">غداء أو عشاء</option>
                 <option value="snack">سناك</option>
+                <option value="any">أي وجبة</option>
               </select>
             </Field>
           </div>

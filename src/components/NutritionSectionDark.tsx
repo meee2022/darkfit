@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,6 +18,8 @@ import {
 import { useLanguage } from "../lib/i18n";
 import { AIMealSuggestion } from "./AIMealSuggestion";
 import { BarcodeScanner } from "./BarcodeScanner";
+import { MealPhotoScanner } from "./MealPhotoScanner";
+import { useAwardXP } from "./XPBar";
 
 interface NutritionSectionProps {
   targetGroup?: "general" | "diabetes" | "seniors" | "children";
@@ -58,6 +60,114 @@ function todayISO() {
   return new Date().toISOString().split("T")[0];
 }
 
+// Sub-component for the redesigned food card
+function FoodCardItem({ 
+  food, 
+  onAdd, 
+  isAr 
+}: { 
+  food: any; 
+  onAdd: (qty: number) => void; 
+  isAr: boolean; 
+}) {
+  const [servings, setServings] = useState(1);
+  const servingSize = 100; // default serving
+
+  const name = (isAr ? food.nameAr : food.name) || "بدون اسم";
+  const nameSub = (isAr ? food.name : food.nameAr) || "Untitled";
+
+  // Per 100g values
+  const baseCals = food.caloriesPer100g || food.calories || 0;
+  const baseProt = food.proteinPer100g || food.protein || 0;
+  const baseCarbs = food.carbsPer100g || food.carbs || 0;
+  const baseFat = food.fatPer100g || food.fat || 0;
+
+  // Totals for selected servings
+  const totalCals = Math.round(baseCals * servings);
+  const totalProt = (baseProt * servings).toFixed(1);
+  const totalCarbs = (baseCarbs * servings).toFixed(1);
+  const totalFat = (baseFat * servings).toFixed(1);
+
+  // Quick visual max for macro bar based on total cals (rough approximation: 50% max)
+  const macroVisualPct = (macroCals: number) => Math.min(100, (macroCals / Math.max(1, totalCals * 0.5)) * 100);
+
+  return (
+    <div className="bg-[#111] rounded-2xl border border-zinc-800 p-4 space-y-4 shadow-lg hover:border-zinc-700 transition-colors">
+      <div className="flex justify-between items-start">
+        <div>
+          <h4 className="font-bold text-lg text-white flex items-center gap-2">
+            🍲 {name}
+          </h4>
+          <p className="text-sm text-zinc-400 mt-1">{nameSub}</p>
+        </div>
+        <button 
+          onClick={() => onAdd(servings * servingSize)}
+          className="px-4 py-2 bg-[#59f20d] text-black font-bold rounded-xl text-sm flex items-center gap-1 hover:brightness-110 active:scale-95 transition-all"
+        >
+          <Plus className="w-4 h-4" /> {isAr ? "إضافة" : "Add"}
+        </button>
+      </div>
+
+      <div className="flex items-center gap-4 py-3 border-y border-zinc-800">
+        <p className="text-sm font-bold text-zinc-300">
+          {isAr ? "الحصة:" : "Serving:"} {servingSize} {isAr ? "جم" : "g"}
+        </p>
+        <div className="flex items-center gap-3 bg-zinc-900 rounded-xl p-1 border border-zinc-700">
+          <button 
+            onClick={() => setServings(Math.max(0.5, servings - 0.5))}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 text-white hover:bg-zinc-700"
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+          <span className="font-bold text-sm w-16 text-center">
+            {servings} {isAr ? "حصص" : "servings"}
+          </span>
+          <button 
+            onClick={() => setServings(servings + 0.5)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 text-white hover:bg-zinc-700"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <div className="flex justify-between items-end mb-2">
+          <span className="text-sm text-zinc-400 font-bold">{isAr ? "السعرات:" : "Calories:"}</span>
+          <span className="text-xl font-black text-[#59f20d]">{totalCals} <span className="text-xs text-zinc-500">{isAr ? "سعرة" : "kcal"}</span></span>
+        </div>
+
+        <div className="space-y-2">
+          {/* Protein */}
+          <div className="flex items-center gap-3 text-xs">
+            <span className="w-16 text-zinc-400">{isAr ? "بروتين" : "Protein"}</span>
+            <span className="w-12 font-bold text-white">{totalProt}g</span>
+            <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+               <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${macroVisualPct(baseProt * servings * 4)}%` }} />
+            </div>
+          </div>
+          {/* Carbs */}
+          <div className="flex items-center gap-3 text-xs">
+            <span className="w-16 text-zinc-400">{isAr ? "كارب" : "Carbs"}</span>
+            <span className="w-12 font-bold text-white">{totalCarbs}g</span>
+            <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+               <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${macroVisualPct(baseCarbs * servings * 4)}%` }} />
+            </div>
+          </div>
+          {/* Fat */}
+          <div className="flex items-center gap-3 text-xs">
+            <span className="w-16 text-zinc-400">{isAr ? "دهون" : "Fat"}</span>
+            <span className="w-12 font-bold text-white">{totalFat}g</span>
+            <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+               <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${macroVisualPct(baseFat * servings * 9)}%` }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function NutritionSectionDark({ targetGroup = "general" }: NutritionSectionProps) {
   const { language, dir, t } = useLanguage();
   const isAr = language === "ar";
@@ -74,12 +184,47 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
   // Modal state for adding food to meal
   const [showFoodModal, setShowFoodModal] = useState(false);
   const [selectedMealForAdd, setSelectedMealForAdd] = useState<Exclude<MealType, "">>("breakfast");
+  const [foodSearchQuery, setFoodSearchQuery] = useState("");
+  const [showAllFoods, setShowAllFoods] = useState(false);
 
   // Notification dismissal state
   const [dismissWaterReminder, setDismissWaterReminder] = useState(false);
 
   // Quick barcode scanner state for hero area
   const [heroScanMeal, setHeroScanMeal] = useState<Exclude<MealType, "">>('breakfast');
+
+  // Debounced search query
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(foodSearchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [foodSearchQuery]);
+
+  // Specific category chips selection
+  const [selectedChipCategory, setSelectedChipCategory] = useState<string>("all");
+
+  const categoryChips = [
+    { id: "all", labelAr: "الكل", labelEn: "All", icon: "🍱" },
+    { id: "main", labelAr: "أطباق رئيسية", labelEn: "Main Dishes", icon: "🍛" },
+    { id: "grilled", labelAr: "مشاوي", labelEn: "Grilled", icon: "🥩" },
+    { id: "appetizers", labelAr: "مقبلات", labelEn: "Appetizers", icon: "🥗" },
+    { id: "sweets", labelAr: "حلويات", labelEn: "Sweets", icon: "🍰" },
+    { id: "ramadan", labelAr: "أطعمة رمضان", labelEn: "Ramadan Foods", icon: "🌙" },
+    { id: "khaliji", labelAr: "خليجي", labelEn: "Khaliji", icon: "🥘" },
+    { id: "shami", labelAr: "شامي", labelEn: "Shami", icon: "🧆" },
+    { id: "egyptian", labelAr: "مصري", labelEn: "Egyptian", icon: "🫘" },
+  ];
+
+  useEffect(() => {
+    if (!showFoodModal) {
+      document.body.classList.remove('blur-active', 'modal-open');
+      document.body.style.overflow = '';
+      setFoodSearchQuery(""); // Reset search on close
+      setShowAllFoods(false); // Reset toggle on close
+    }
+  }, [showFoodModal]);
 
   const foods = useQuery(api.nutrition.getAllFoods, {
     category: selectedCategoryAr || undefined,
@@ -88,6 +233,53 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
     isSeniorFriendly: targetGroup === "seniors" ? true : undefined,
     isChildFriendly: targetGroup === "children" ? true : undefined,
   });
+
+  const filteredModalFoods = useMemo(() => {
+    if (!foods) return [];
+    
+    // 1. Filter by search query (debounced)
+    let result = foods;
+    if (debouncedQuery.trim()) {
+      const q = debouncedQuery.toLowerCase();
+      result = result.filter(f => 
+        (f.name && f.name.toLowerCase().includes(q)) || 
+        (f.nameAr && f.nameAr.toLowerCase().includes(q))
+      );
+    }
+    
+    // 2. Filter by chip category
+    if (selectedChipCategory !== "all") {
+      result = result.filter(f => {
+        const cat = typeof f.category === 'string' ? f.category : '';
+        const lowerCat = cat.toLowerCase();
+        
+        switch (selectedChipCategory) {
+          case 'main': return lowerCat.includes('main') || lowerCat.includes('رئيسي');
+          case 'grilled': return lowerCat.includes('grill') || lowerCat.includes('مشاوي');
+          case 'appetizers': return lowerCat.includes('appetizer') || lowerCat.includes('مقبلات');
+          case 'sweets': return lowerCat.includes('sweet') || lowerCat.includes('حلويات') || lowerCat.includes('dessert');
+          case 'ramadan': return f.isRamadan || lowerCat.includes('ramadan') || lowerCat.includes('رمضان');
+          case 'khaliji': return lowerCat.includes('khaliji') || lowerCat.includes('gulf') || lowerCat.includes('خليجي');
+          case 'shami': return lowerCat.includes('shami') || lowerCat.includes('شامي');
+          case 'egyptian': return lowerCat.includes('egyptian') || lowerCat.includes('مصري');
+          default: return true;
+        }
+      });
+    }
+
+    // 3. Filter by Meal Type (unless 'showAllFoods' is true)
+    if (!showAllFoods) {
+      if (selectedMealForAdd === "breakfast") {
+        result = result.filter(f => f.mealType === "breakfast" || f.mealType === "any");
+      } else if (selectedMealForAdd === "lunch" || selectedMealForAdd === "dinner") {
+        result = result.filter(f => f.mealType === "lunch_dinner" || f.mealType === "any" || f.mealType === "lunch" || f.mealType === "dinner");
+      } else if (selectedMealForAdd === "snack") {
+        result = result.filter(f => f.mealType === "snack" || f.mealType === "any");
+      }
+    }
+    
+    return result;
+  }, [foods, debouncedQuery, showAllFoods, selectedMealForAdd, selectedChipCategory]);
 
   const plans = useQuery(api.nutrition.getNutritionPlans, { targetGroup });
   const log = useQuery(api.nutrition.getUserNutritionLog, {
@@ -100,8 +292,11 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
   const clearLog = useMutation(api.nutrition.clearTodayLog);
   const setWater = useMutation(api.nutrition.setWaterIntake);
   const addScanned = useMutation(api.nutrition.addScannedFoodToLog);
+  const awardXP = useAwardXP();
 
   const userProfile = useQuery(api.profiles.getCurrentProfile);
+  const fastingSettings = useQuery(api.fasting.getSettings);
+  const isRamadan = fastingSettings?.mode === "ramadan";
 
   const header = useMemo(() => {
     if (targetGroup === "diabetes") {
@@ -283,10 +478,27 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
           <div>
             <h3 className="text-lg font-bold">{isAr ? "الملخص اليومي" : "Daily Summary"}</h3>
             <p className="text-sm text-gray-400">
-              {isAr ? "الأربعاء 14 فبراير" : todayISO()}
+              {new Intl.DateTimeFormat(isAr ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-center gap-2 relative z-10">
+            <MealPhotoScanner 
+              onMealScanned={(meal) => {
+                addScanned({
+                  mealType: 'snack', // Defaulting to snack, they can edit later
+                  barcode: 'ai-scanned',
+                  foodData: {
+                    nameEn: meal.nameEn || meal.name,
+                    nameAr: meal.nameAr || meal.name,
+                    calories: meal.calories,
+                    protein: meal.protein,
+                    carbs: meal.carbs,
+                    fat: meal.fats,
+                  }
+                });
+                alert(isAr ? "تمت إضافة الوجبة لسناكات اليوم!" : "Meal added to today's snacks!");
+              }}
+            />
             <BarcodeScanner
               onAddFood={(food, mealType) => {
                 addScanned({
@@ -303,7 +515,7 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
                 });
               }}
               triggerLabel={isAr ? "مسح الباركود" : "Scan QR"}
-              triggerClassName="px-4 py-2 bg-[#59f20d]/10 border border-[#59f20d] rounded-2xl text-[#59f20d] text-sm font-bold hover:bg-[#59f20d]/20 transition-colors flex items-center gap-2"
+              triggerClassName="px-4 py-3 sm:py-2 bg-[#59f20d]/10 border border-[#59f20d] rounded-2xl text-[#59f20d] text-sm font-bold hover:bg-[#59f20d]/20 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
             />
           </div>
         </div>
@@ -434,23 +646,38 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
             <Minus className="w-6 h-6" />
           </button>
           <div className="flex gap-1 items-center">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <motion.div
-                key={i}
-                animate={{ height: waterMl >= i * 250 ? 32 : 20, opacity: waterMl >= i * 250 ? 1 : 0.35 }}
-                transition={{ duration: 0.3 }}
-                className={cn(
-                  "w-2 rounded-full",
-                  waterMl >= i * 250
-                    ? "bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.5)]"
-                    : "bg-zinc-700"
-                )}
-              />
-            ))}
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => {
+              const regionSettings = useQuery(api.regionSettings.getSettings);
+              const hotMode = regionSettings?.hotClimateMode || "auto";
+              const targetWater = regionSettings?.waterReminderBoost ? 3000 : 2000;
+              if (i > targetWater / 250) return null;
+
+              return (
+                <motion.div
+                  key={i}
+                  animate={{ height: waterMl >= i * 250 ? 32 : 20, opacity: waterMl >= i * 250 ? 1 : 0.35 }}
+                  transition={{ duration: 0.3 }}
+                  className={cn(
+                    "w-2 rounded-full",
+                    waterMl >= i * 250
+                      ? "bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.5)]"
+                      : "bg-zinc-700"
+                  )}
+                />
+              );
+            })}
           </div>
           <div>
             <div className="text-sm font-bold">{isAr ? "شرب الماء" : "Water Intake"}</div>
-            <div className="text-xs text-gray-400">{waterMl}ml {isAr ? "من 2000 ml" : "of 2000 ml"}</div>
+            {(() => {
+              const regionSettings = useQuery(api.regionSettings.getSettings);
+              const targetWater = regionSettings?.waterReminderBoost ? 3000 : 2000;
+              return (
+                <div className="text-xs text-gray-400">
+                  {waterMl}ml {isAr ? `من ${targetWater} ml` : `of ${targetWater} ml`}
+                </div>
+              );
+            })()}
           </div>
         </div>
         <Droplets className="h-8 w-8 text-blue-400 flex-shrink-0" />
@@ -473,10 +700,30 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
 
         {/* Meal Cards */}
         {mealBlocks.map((meal) => {
-          const mealName = mealLabel(t, meal.mealType);
-          const mealIcon = meal.mealType === "breakfast" ? "🍳" :
+          let mealName = mealLabel(t, meal.mealType);
+          let mealIcon = meal.mealType === "breakfast" ? "🍳" :
             meal.mealType === "lunch" ? "🥗" :
               meal.mealType === "dinner" ? "🍽️" : "🍎";
+          
+          let targetText = "";
+
+          if (isRamadan) {
+            if (meal.mealType === "breakfast") {
+               mealName = isAr ? "الإفطار" : "Iftar";
+               mealIcon = "🍲";
+               targetText = `(الهدف: ${Math.round(targetCalories * 0.6)} سعرة)`;
+            } else if (meal.mealType === "dinner") {
+               mealName = isAr ? "السحور" : "Suhoor";
+               mealIcon = "🌙";
+               targetText = `(الهدف: ${Math.round(targetCalories * 0.4)} سعرة)`;
+            } else if (meal.mealType === "snack") {
+               mealName = isAr ? "سناك رمضاني" : "Ramadan Snack";
+               mealIcon = "☕";
+            } else if (meal.mealType === "lunch") {
+               // Lunch is not typically eaten in Ramadan, but we keep it available
+               mealName = isAr ? "وجبة إضافية" : "Extra Meal";
+            }
+          }
 
           return (
             <div
@@ -504,10 +751,10 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
                           foodData: {
                             nameEn: food.nameEn,
                             nameAr: food.nameAr,
-                            calories: food.calories,
-                            protein: food.protein,
-                            carbs: food.carbs,
-                            fat: food.fat,
+                            calories: (food as any).caloriesPer100g || food.calories || 0,
+                            protein: (food as any).proteinPer100g || food.protein || 0,
+                            carbs: (food as any).carbsPer100g || food.carbs || 0,
+                            fat: (food as any).fatPer100g || food.fat || 0,
                           }
                         });
                       }}
@@ -518,7 +765,11 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
                       <span>{mealIcon}</span>
                       {mealName}
                     </h4>
-                    <p className="text-xs text-gray-400">{meal.totalCalories} {isAr ? "سعرة حرارية" : "calories"}</p>
+                    <p className="text-xs text-gray-400">
+                      <span className={meal.totalCalories > 0 ? "text-[#59f20d] font-bold" : ""}>
+                        {meal.totalCalories}
+                      </span> {isAr ? "سعرة" : "kcal"} {targetText && <span className="text-zinc-500 ml-1">{targetText}</span>}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -609,58 +860,7 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
         </button>
       </div>
 
-      {/* Floating Inline Water Reminder */}
-      <AnimatePresence>
-        {!dismissWaterReminder && waterMl < 2000 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="relative bg-zinc-950/80 backdrop-blur-xl border border-blue-500/30 rounded-[1.5rem] p-5 shadow-[0_0_30px_rgba(59,130,246,0.15)] mt-4"
-          >
-            {/* Inner Glow */}
-            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-blue-500/5 blur-xl pointer-events-none rounded-b-[1.5rem]" />
-            
-            <button
-              onClick={() => setDismissWaterReminder(true)}
-              className="absolute top-3 left-3 w-6 h-6 rounded-full bg-zinc-800/50 hover:bg-zinc-700 flex items-center justify-center transition-colors"
-            >
-              <X className="w-3 h-3 text-gray-400" />
-            </button>
-            
-            <div className="flex flex-col items-center text-center mt-2 px-2">
-              <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
-                <Droplets className="w-6 h-6 text-blue-400" />
-              </div>
-              <h4 className="text-white font-bold text-base mb-1">
-                {isAr ? "تذكير شرب الماء" : "Water Reminder"}
-              </h4>
-              <p className="text-sm text-gray-400 mb-5">
-                {isAr ? "هل شربت كمية كافية من الماء اليوم؟" : "Did you drink enough water today?"}
-              </p>
-              
-              <div className="flex w-full gap-3">
-                <button
-                  onClick={() => setDismissWaterReminder(true)}
-                  className="flex-1 py-3 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-gray-300 text-sm font-medium transition-colors"
-                >
-                  {isAr ? "لا، ذكرني لاحقاً" : "No, remind later"}
-                </button>
-                <button
-                  onClick={() => {
-                    setWater({ waterIntake: waterMl + 250, date: todayISO() });
-                    // Optional: auto-dismiss on adding a certain amount
-                    if (waterMl + 250 >= 2000) setDismissWaterReminder(true);
-                  }}
-                  className="flex-1 py-3 px-4 rounded-xl bg-blue-500 hover:bg-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.4)] text-white text-sm font-bold transition-all hover:scale-[1.02] active:scale-95"
-                >
-                  {isAr ? "نعم، أضف كوباً" : "Yes, add a cup"}
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {/* Floating Add Button */}
       <button 
@@ -676,9 +876,9 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
       {/* Food Selection Modal */}
       {showFoodModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-zinc-900 rounded-3xl border-2 border-[#59f20d]/30 p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+          <div className="bg-zinc-900 rounded-3xl border-2 border-[#59f20d]/30 p-6 max-w-2xl w-full max-h-[80vh] flex flex-col">
             {/* Modal Header */}
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-white">
                 {isAr ? "اختر الطعام" : "Select Food"}
               </h3>
@@ -692,46 +892,94 @@ export default function NutritionSectionDark({ targetGroup = "general" }: Nutrit
               </button>
             </div>
 
-            {/* Meal Type Badge */}
-            <div className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#59f20d]/10 border border-[#59f20d]/30">
-              <span className="text-sm font-bold text-[#59f20d]">
-                {mealLabel(t, selectedMealForAdd)}
-              </span>
+            {/* Modal Search and Filter */}
+            <div className="mb-4 space-y-3">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder={isAr ? "ابحث عن طعام..." : "Search food..."}
+                  value={foodSearchQuery}
+                  onChange={(e) => setFoodSearchQuery(e.target.value)}
+                  className="w-full bg-zinc-800 text-white placeholder-gray-500 rounded-2xl px-4 py-3 pr-10 outline-none focus:ring-2 focus:ring-[#59f20d]/50"
+                  dir={dir}
+                />
+                <svg
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                {categoryChips.map((chip) => {
+                  // Only show ramadan chip if in ramadan mode
+                  if (chip.id === 'ramadan' && !isRamadan) return null;
+                  
+                  return (
+                    <button
+                      key={chip.id}
+                      onClick={() => setSelectedChipCategory(chip.id)}
+                      className={cn(
+                        "px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-colors border flex items-center gap-2",
+                        selectedChipCategory === chip.id
+                          ? "bg-[#59f20d] border-[#59f20d] text-black shadow-[0_0_15px_rgba(89,242,13,0.3)]"
+                          : "bg-zinc-800 border-zinc-700 text-gray-400 hover:text-white hover:bg-zinc-700 hover:border-zinc-600"
+                      )}
+                    >
+                      <span>{chip.icon}</span> {isAr ? chip.labelAr : chip.labelEn}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Meal Type Override (Show All toggle) */}
+              <div className="flex items-center justify-between py-1 px-1">
+                <p className="text-xs text-zinc-500 font-bold">
+                  {isAr ? "فرز حسب الوجبة:" : "Filter by Meal:"}
+                </p>
+                <button
+                  onClick={() => setShowAllFoods(!showAllFoods)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border flex items-center gap-1",
+                    showAllFoods 
+                      ? "bg-amber-500/20 border-amber-500/50 text-amber-500" 
+                      : "bg-[#59f20d]/20 border-[#59f20d]/50 text-[#59f20d]"
+                  )}
+                >
+                  {showAllFoods ? (isAr ? "عرض الكل محدد" : "Showing All") : (isAr ? "مقتصر على الوجبة الحالية" : "Limited to Current Meal")}
+                </button>
+              </div>
             </div>
 
             {/* Food List */}
-            <div className="space-y-2">
-              {foods && foods.length > 0 ? (
-                foods.map((food) => (
-                  <button
+            <div className="space-y-3 overflow-y-auto flex-1 pr-1 pb-4">
+              {filteredModalFoods && filteredModalFoods.length > 0 ? (
+                filteredModalFoods.map((food) => (
+                  <FoodCardItem
                     key={food._id}
-                    onClick={() => {
-                      addToMeal({
+                    food={food}
+                    isAr={isAr}
+                    onAdd={async (qty) => {
+                      await addToMeal({
                         mealType: selectedMealForAdd as any,
                         foodId: food._id as any,
-                        quantity: 100,
+                        quantity: qty,
                         date: todayISO(),
                       });
+                      // Award XP for logging a meal
+                      awardXP("meal");
                       setShowFoodModal(false);
                     }}
-                    className="w-full p-4 rounded-2xl bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 hover:border-[#59f20d]/50 transition-all text-right flex items-center justify-between group"
-                  >
-                    <div>
-                      <h4 className="font-bold text-white mb-1">{foodName(food)}</h4>
-                      <p className="text-xs text-gray-400">
-                        {food.calories} {isAr ? "سعرة حرارية" : "cal"} •
-                        {food.protein}g {isAr ? "بروتين" : "protein"} •
-                        {food.carbs}g {isAr ? "كارب" : "carbs"}
-                      </p>
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-[#59f20d]/20 group-hover:bg-[#59f20d] flex items-center justify-center transition-colors">
-                      <Plus className="w-4 h-4 text-[#59f20d] group-hover:text-black transition-colors" />
-                    </div>
-                  </button>
+                  />
                 ))
               ) : (
-                <div className="text-center py-8 text-gray-400">
-                  {isAr ? "لا توجد أطعمة متاحة" : "No foods available"}
+                <div className="text-center py-12 flex flex-col items-center justify-center opacity-60">
+                  <div className="text-4xl mb-3">🍽️</div>
+                  <p className="text-white font-bold">{isAr ? "لا توجد أطعمة هنا" : "No foods found"}</p>
+                  <p className="text-xs text-zinc-500 mt-1">{isAr ? "جرب البحث بكلمة أخرى أو تصفح الأقسام" : "Try another search term or browse categories"}</p>
                 </div>
               )}
             </div>

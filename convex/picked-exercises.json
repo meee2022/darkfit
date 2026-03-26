@@ -1558,5 +1558,67 @@
       "Barbell_Side_Bend/1.jpg"
     ],
     "id": "Barbell_Side_Bend"
+  },
+  {
+    "name": "Dumbbell Flyes",
+    "nameAr": "تفتيح صدر بالدمبل (فلايز)",
+    "force": "push",
+    "level": "intermediate",
+    "mechanic": "isolation",
+    "equipment": "dumbbell",
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "instructions": [
+      "Lie on a flat bench with a dumbbell in each hand resting on top of your thighs. The palms of your hands will be facing each other.",
+      "Then using your thighs to help you get the dumbbells up, lift the dumbbells one at a time so you can hold them in front of you at shoulder width with the palms of the hands facing each other. Raise the dumbbells up like you're pressing them, but stop and hold the light bend in your elbows.",
+      "With a slight bend on your elbows in order to prevent stress at the biceps tendon, lower your arms out at both sides in a wide arc until you feel a stretch on your chest. Breathe in as you perform this portion of the movement. Tip: Keep in mind that throughout the movement, the arms should remain stationary; the movement should only happen at the shoulder joint.",
+      "Return your arms back to the starting position as you squeeze your chest muscles and exhale. Tip: Make sure to use the same arc of motion used to lower the weights.",
+      "Hold for a second at the contracted position and repeat the movement for the prescribed amount of repetitions."
+    ],
+    "instructionsAr": [
+      "استلقِ على بنش مستوٍ مع الإمساك بدمبل في كل يد، وضعهما فوق فخذيك بحيث تكون الراحتان متقابلتين.",
+      "استخدم فخذيك لمساعدتك على رفع الدمبلز، واحداً تلو الآخر، حتى تمسكهما أمامك بعرض الكتفين مع تقابل الراحتين. ارفعهما كما لو كنت تضغط، ولكن توقف وحافظ على انحناء بسيط في مرفقيك.",
+      "مع الحفاظ على انحناء بسيط في المرفقين لتجنب الضغط على أوتار البايسبس، أنزل ذراعيك إلى الجانبين في قوس واسع حتى تشعر بتمدد في عضلات الصدر. خذ نفساً (شهيق) أثناء هذه الحركة. نصيحة: تذكر أن الذراعين يجب أن تظلا ثابتتين، والحركة يجب أن تكون من مفصل الكتف فقط.",
+      "أعد ذراعيك إلى وضع البداية مع عصر عضلات الصدر وإخراج النفس (زفير). نصيحة: تأكد من استخدام نفس القوس الحركي الذي استخدمته عند الإنزال.",
+      "ثبت الوضع لمدة ثانية عند الانقباض وكرر الحركة للعدد المطلوب من المرات."
+    ],
+    "category": "strength",
+    "images": [],
+    "gifUrl": "https://image.mux.com/wtXNqDUH5CRaPNFgqZBnzkYMMyHT1Yx3i2JoSWaJi7E/animated.gif?height=320&start=1&width=320",
+    "id": "Dumbbell_Flyes_Custom"
+  },
+  {
+    "name": "Pec Deck Fly",
+    "nameAr": "تفتيح صدر بالآلة (بيكتورال فلاي)",
+    "force": "push",
+    "level": "beginner",
+    "mechanic": "isolation",
+    "equipment": "machine",
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "instructions": [
+      "Sit on the machine with your back flat against the pad. Grip the handles.",
+      "Squeeze your chest muscles to bring the handles together until they meet in the center.",
+      "Pause for a second at the peak contraction.",
+      "Slowly return to the starting position, maintaining control."
+    ],
+    "instructionsAr": [
+      "اجلس على الآلة مع إبقاء ظهرك مستوياً تماماً على المسند. أمسك بالمقابض.",
+      "اعصر عضلات الصدر لتقريب المقابض من بعضها حتى تلتقي في المنتصف.",
+      "توقف لمدة ثانية عند أقصى انقباض للعضلة.",
+      "عُد ببطء إلى وضع البداية مع الحفاظ على التحكم في الحركة."
+    ],
+    "category": "strength",
+    "images": [],
+    "gifUrl": "https://image.mux.com/tF025fWUYIlvmLXUWLSOboTvl02dVUoShB00hVsaaDpD7w/animated.gif",
+    "id": "Pec_Deck_Fly_Custom"
   }
 ]

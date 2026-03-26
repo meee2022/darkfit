@@ -2,6 +2,7 @@ import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Toaster } from "sonner";
 
 import { Dashboard } from "./components/Dashboard";
 import { ExerciseSection } from "./components/ExerciseSection";
@@ -15,6 +16,12 @@ import { HealthSection } from "./components/HealthSection";
 import { AccountSettings } from "./components/AccountSettings";
 import { ProfileSection } from "./components/ProfileSection";
 import { WorkoutGenerator } from "./components/WorkoutGenerator";
+import { AboutSection } from "./components/AboutSection";
+import { ProgressTracker } from "./components/ProgressTracker";
+import { SmartCoachSection } from "./components/SmartCoachSection";
+import { SocialHub } from "./components/SocialHub";
+import { WorkoutHistory } from "./components/WorkoutHistory";
+import { CoachChat } from "./components/CoachChat";
 
 import { CoachWorkoutPlanForm } from "./components/CoachWorkoutPlanForm";
 import { CoachDashboard } from "./components/CoachDashboard";
@@ -33,7 +40,8 @@ import splashLogo from "./assets/splash.jpg";
 import FitBot from "./components/FitBot";
 import { NotificationManager } from "./components/NotificationManager";
 import { WorkoutTimer } from "./components/WorkoutTimer";
-
+import { PWAManager } from "./components/PWAManager";
+import { Onboarding } from "./components/Onboarding";
 
 /* ============ Splash Screen ============ */
 
@@ -140,6 +148,7 @@ export default function App() {
   const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
   const [showProfilePrompt, setShowProfilePrompt] = useState(false);
   const [showSignInModal, setShowSignInModal] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const userProfile = useQuery(api.profiles.getCurrentProfile);
@@ -149,7 +158,13 @@ export default function App() {
   const isProfileLoading = isAuthenticated && userProfile === undefined;
   const needsProfile = isAuthenticated && userProfile === null;
 
-  const publicSections: SectionId[] = ["dashboard", "exercises", "coaches", "calculator", "workoutGenerator"];
+  useEffect(() => {
+    if (isAuthenticated && userProfile && userProfile.onboardingCompleted === undefined) {
+      setShowOnboarding(true);
+    }
+  }, [isAuthenticated, userProfile]);
+
+  const publicSections: SectionId[] = ["dashboard", "exercises", "coaches", "calculator", "workoutGenerator", "about"];
   const isProtectedSection = !publicSections.includes(activeSection);
 
   // لو الـ Splash لسه ظاهر، رجّعه لوحده
@@ -166,7 +181,12 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen bg-[#0c0c0c] text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-300">
+      <Toaster position="top-center" richColors />
       <div className="bg-app-gradient fixed inset-0 -z-10 opacity-80" />
+
+      {showOnboarding && (
+        <Onboarding onComplete={() => setShowOnboarding(false)} />
+      )}
 
       <Header
         activeSection={activeSection}
@@ -187,6 +207,7 @@ export default function App() {
           </div>
         ) : (
           <>
+            <PWAManager />
             {isAuthenticated && <NotificationManager />}
             {isAuthenticated && <WorkoutTimer />}
             <TopNav
@@ -305,6 +326,9 @@ export default function App() {
 
                         {activeSection === "exercises" && <ExerciseSection />}
                         {activeSection === "workoutGenerator" && <WorkoutGenerator />}
+                        {activeSection === "about" && <AboutSection onNavigate={(id) => setActiveSection(id as SectionId)} />}
+                        {activeSection === "progress" && <ProgressTracker />}
+                        {activeSection === "smartCoach" && <SmartCoachSection />}
                         {activeSection === "nutrition" && <NutritionSection />}
                         {activeSection === "supplements" && <Supplements />}
                         {activeSection === "calculator" && <CalorieCalculator />}
@@ -312,9 +336,12 @@ export default function App() {
                         {activeSection === "account" && <AccountSettings />}
                         {activeSection === "health" && <HealthSection />}
                         {activeSection === "fitbot" && <FitBot onBack={() => setActiveSection("dashboard")} />}
-                        {activeSection === "profile" && <ProfileSection />}
+                        {activeSection === "profile" && <ProfileSection onNavigate={(id) => setActiveSection(id as SectionId)} />}
 
                         {activeSection === "plans" && <MyPlans />}
+                         {activeSection === "social" && <SocialHub />}
+                         {activeSection === "messages" && <CoachChat />}
+                         {activeSection === "workoutHistory" && <WorkoutHistory />}
 
                         {activeSection === "coachPlans" && isAdmin && (
                           <CoachWorkoutPlanForm />

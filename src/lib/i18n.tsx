@@ -80,10 +80,14 @@ const DICT: Dict = {
   exercises: { ar: "التمارين", en: "Exercises" },
   nutrition: { ar: "التغذية", en: "Nutrition" },
   calculator: { ar: "الحاسبة", en: "Calculator" },
+  calorie_calculator: { ar: "حاسبة السعرات", en: "Calorie Calculator" },
   calculators: { ar: "حاسبات", en: "Calculators" },
   health: { ar: "الصحة", en: "Health" },
+  progress: { ar: "تتبع التطور", en: "Progress" },
+  smartCoach: { ar: "المدرب الذكي", en: "Smart Coach" },
   coaches: { ar: "المدربون", en: "Coaches" },
   admin_panel: { ar: "لوحة الإدارة", en: "Admin Panel" },
+  about: { ar: "عن التطبيق", en: "About App" },
 
   /* Account */
   account: { ar: "الحساب", en: "Account" },
@@ -123,7 +127,7 @@ const DICT: Dict = {
   fitness_unknown: { ar: "غير محدد", en: "Not set" },
 
   /* Stats */
-  completion: { ar: "نسبة الإنجاز", en: "Completion" },
+  completion: { ar: "إنجاز الأسبوع", en: "Weekly Completion" },
   workout_days: { ar: "أيام تمرين", en: "Workout Days" },
   burned_calories: { ar: "سعرة محروقة", en: "Burned Calories" },
 
@@ -391,6 +395,32 @@ const DICT: Dict = {
   dark: { ar: "داكن", en: "Dark" },
 
   no_admin_permission: { ar: "لا تملك صلاحية الدخول إلى لوحة التحكم.", en: "You do not have permission to access the admin panel." },
+
+  /* Coach Dashboard */
+  coach_dashboard:  { ar: "لوحة المدرب",       en: "Trainer Panel" },
+
+  /* Supplement Tags (Arabic translations for English tags) */
+  tag_endurance:    { ar: "التحمل",           en: "endurance" },
+  tag_energy:       { ar: "الطاقة",           en: "energy" },
+  tag_focus:        { ar: "التركيز",          en: "focus" },
+  tag_strength:     { ar: "القوة",            en: "strength" },
+  tag_recovery:     { ar: "الاستشفاء",        en: "recovery" },
+  tag_muscle:       { ar: "العضلات",          en: "muscle" },
+  tag_immunity:     { ar: "المناعة",          en: "immunity" },
+  tag_joints:       { ar: "المفاصل",          en: "joints" },
+  tag_sleep:        { ar: "النوم",            en: "sleep" },
+  tag_hydration:    { ar: "الترطيب",          en: "hydration" },
+  tag_fat_loss:     { ar: "حرق الدهون",       en: "fat loss" },
+  tag_pump:         { ar: "ضخ الدم",          en: "pump" },
+  tag_performance:  { ar: "الأداء",           en: "performance" },
+  tag_antioxidant:  { ar: "مضاد أكسدة",       en: "antioxidant" },
+  tag_bone_health:  { ar: "صحة العظام",       en: "bone health" },
+  tag_heart_health: { ar: "صحة القلب",        en: "heart health" },
+  tag_digestion:    { ar: "الهضم",            en: "digestion" },
+  tag_mood:         { ar: "المزاج",           en: "mood" },
+
+  /* Nutrition Plan */
+  my_nutrition_plan: { ar: "خطتي الغذائية",   en: "My Nutrition Plan" },
 };
 
 /* =========================

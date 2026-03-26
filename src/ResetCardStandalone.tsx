@@ -50,6 +50,9 @@ export function ResetCardStandalone() {
     if (/invalid/i.test(msg) && /code/i.test(msg)) return t("err_reset_code_invalid");
     if (/expired/i.test(msg)) return t("err_reset_code_expired");
     if (/too many/i.test(msg) || /rate/i.test(msg)) return t("err_rate_limit");
+    if (/server error/i.test(msg)) {
+      return "خطأ في الخادم: تأكد من إعداد مفتاح Resend وأنك ترسل الكود لبريدك المسجل لديهم فقط (قيود الحساب المجاني).";
+    }
     return msg || t("err_generic");
   }
 

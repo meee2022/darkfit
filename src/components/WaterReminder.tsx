@@ -51,11 +51,26 @@ export function WaterReminder() {
         setShow(false);
     };
 
+    useEffect(() => {
+        if (!show) {
+            document.body.classList.remove('blur-active', 'modal-open');
+            document.body.style.overflow = '';
+        } else {
+            document.body.style.overflow = 'hidden';
+        }
+    }, [show]);
+
     if (!show) return null;
 
     return (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-50 animate-slideUp">
-            <div className="bg-black/80 backdrop-blur-xl border-2 border-blue-500/50 p-4 rounded-3xl shadow-[0_10px_40px_rgba(59,130,246,0.3)]">
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" 
+          onClick={() => setShow(false)}
+        >
+            <div 
+              className="w-full max-w-sm bg-black/80 backdrop-blur-xl border-2 border-blue-500/50 p-5 rounded-[2rem] shadow-[0_10px_40px_rgba(59,130,246,0.3)] animate-slideUp"
+              onClick={(e) => e.stopPropagation()}
+            >
                 <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
@@ -66,26 +81,34 @@ export function WaterReminder() {
                             <p className="text-sm text-blue-200 mt-0.5">{isAr ? "هل شربت كمية كافية من الماء اليوم؟" : "Have you drank enough water today?"}</p>
                         </div>
                     </div>
-                    <button onClick={() => setShow(false)} className="text-blue-400 hover:text-white p-1 bg-blue-500/10 rounded-full">
+                    <button onClick={() => setShow(false)} className="text-blue-400 hover:text-white p-1 bg-blue-500/10 rounded-full transition">
                         <X size={16} />
                     </button>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-6">
                     <button
                         onClick={handleYes}
-                        className="flex-1 py-2.5 bg-blue-500 hover:bg-blue-400 text-white text-sm font-bold rounded-xl transition"
+                        className="flex-1 py-3 bg-blue-500 hover:bg-blue-400 text-white text-sm font-bold rounded-xl transition-colors shadow-[0_0_15px_rgba(59,130,246,0.4)] hover:scale-[1.02] active:scale-95"
                     >
                         {isAr ? "نعم، أضف كوباً" : "Yes, add a glass"}
                     </button>
                     <button
                         onClick={handleNo}
-                        className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-bold rounded-xl transition border border-zinc-700 hover:border-zinc-600"
+                        className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-bold rounded-xl transition-colors border border-zinc-700 hover:border-zinc-600"
                     >
                         {isAr ? "لا، ذكرني لاحقاً" : "No, remind later"}
                     </button>
                 </div>
             </div>
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                `
+            }} />
         </div>
     );
 }

@@ -13,4 +13,10 @@ export type SectionId =
   | "admin"
   | "fitbot"
   | "profile"
-  | "workoutGenerator";
+  | "workoutGenerator"
+  | "about"
+  | "progress"
+  | "smartCoach"
+  | "social"
+  | "messages"
+  | "workoutHistory";

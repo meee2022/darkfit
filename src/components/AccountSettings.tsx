@@ -1,9 +1,13 @@
 import React from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Moon, Sun, User } from "lucide-react";
 import { useLanguage } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { toast } from "sonner";
+import { useState } from "react";
+import { Trash2, AlertTriangle } from "lucide-react";
 
 function cn(...x: Array<string | false | null | undefined>) {
   return x.filter(Boolean).join(" ");
@@ -15,6 +19,24 @@ export function AccountSettings() {
   const isRTL = dir === "rtl";
 
   const userProfile = useQuery(api.profiles.getCurrentProfile);
+  const deleteAccount = useMutation(api.userDeletion.deleteAccount);
+  const { signOut } = useAuthActions();
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteAccount();
+      await signOut();
+      window.location.href = "/";
+    } catch (error: any) {
+      toast.error(error.message || (isRTL ? "فشل حذف الحساب" : "Failed to delete account"));
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   const tr = (key: string, fb: string) => {
     try {
@@ -87,6 +109,76 @@ export function AccountSettings() {
           </div>
         </div>
       </div>
+
+      {/* Delete Account Section */}
+      <div className="mt-8">
+        <div className="rounded-3xl border border-red-500/30 bg-red-500/5 backdrop-blur p-6 shadow-lg">
+          <h3 className="text-lg font-bold text-red-500 mb-2 flex items-center gap-2">
+            <Trash2 className="w-5 h-5" />
+            {isRTL ? "منطقة خطر: حذف الحساب" : "Danger Zone: Delete Account"}
+          </h3>
+          <p className="text-sm text-zinc-400 mb-6">
+            {isRTL 
+              ? "بمجرد حذف حسابك، سيتم مسح كافة بياناتك (التمارين، التغذية، القياسات) نهائياً ولا يمكن استرجاعها."
+              : "Once you delete your account, all your data (workouts, nutrition, health records) will be permanently erased and cannot be recovered."}
+          </p>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition shadow-lg shadow-red-600/20 flex items-center justify-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            {isRTL ? "حذف حسابي بالكامل" : "Delete My Entire Account"}
+          </button>
+        </div>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md bg-[#0a0a0a] border-2 border-red-500/30 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-red-600" />
+            
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-2">
+                <AlertTriangle className="w-8 h-8 text-red-500" />
+              </div>
+              
+              <h3 className="text-2xl font-black text-white">
+                {isRTL ? "هل أنت متأكد فعلاً؟" : "Are you absolutely sure?"}
+              </h3>
+              
+              <p className="text-zinc-400 text-sm leading-relaxed">
+                {isRTL 
+                  ? "هذا الإجراء سيقوم بحذف كافة بياناتك من DARKFIT للأبد. لن نتمكن من استعادة أي شيء بعد هذه الخطوة."
+                  : "This action will permanently delete all your DARKFIT data. We won't be able to recover anything after this."}
+              </p>
+
+              <div className="w-full space-y-3 pt-4">
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting}
+                  className="w-full py-4 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-black rounded-2xl transition shadow-lg shadow-red-600/20 flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? (
+                    <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  ) : (
+                    <Trash2 className="w-5 h-5" />
+                  )}
+                  {isRTL ? "نعم، احذف كل شيء" : "Yes, Delete Everything"}
+                </button>
+                
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  className="w-full py-4 bg-zinc-900 border border-zinc-700 text-zinc-300 font-bold rounded-2xl hover:bg-zinc-800 transition"
+                >
+                  {isRTL ? "تراجع" : "Cancel"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

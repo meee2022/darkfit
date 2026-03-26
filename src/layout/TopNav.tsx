@@ -13,6 +13,12 @@ import {
   Bot,
   Menu,
   X,
+  Info,
+  TrendingUp,
+  Brain,
+  Trophy,
+  History,
+  MessageSquare,
 } from "lucide-react";
 import { useLanguage } from "../lib/i18n";
 import type { SectionId } from "../sections";
@@ -62,16 +68,22 @@ export function TopNav({ activeSection, setActiveSection, isAdmin = false, isCoa
       { id: "calculator" as const, label: tr("calculator", "الحاسبة"), icon: Calculator },
       { id: "plans" as const, label: tr("plans", "خططي"), icon: ClipboardList },
       ...(isCoach ? [{ id: "coachDashboard" as const, label: tr("coach_dashboard", "لوحة المدرب"), icon: ClipboardList }] : []),
-      ...(isAdmin ? [{ id: "coachPlans" as const, label: tr("coach_plans", "خطط المتدربين"), icon: ClipboardList }] : []),
     ],
-    [language, isAdmin, isCoach]
+    [language, isCoach]
   );
 
   const moreItems = useMemo(
     () => [
+      ...(isAdmin ? [{ id: "coachPlans" as const, label: tr("coach_plans", "خطط المتدربين"), icon: ClipboardList }] : []),
+      { id: "smartCoach" as const, label: tr("smartCoach", "المدرب الذكي"), icon: Brain },
+      { id: "progress" as const, label: tr("progress", "تتبع التطور"), icon: TrendingUp },
+      { id: "social" as const, label: language === "ar" ? "المجتمع والتحديات" : "Social & Challenges", icon: Trophy },
+      { id: "messages" as const, label: language === "ar" ? "الدردشة" : "Coach Chat", icon: MessageSquare },
+      { id: "workoutHistory" as const, label: language === "ar" ? "سجل التمارين" : "Workout History", icon: History },
       { id: "fitbot" as const, label: tr("fitbot", "المساعد الذكي"), icon: Bot },
+      { id: "about" as const, label: tr("about", "عن التطبيق"), icon: Info },
     ],
-    [language]
+    [language, isAdmin]
   );
 
   const isMoreActive = moreItems.some((item) => item.id === activeSection);
@@ -87,7 +99,7 @@ export function TopNav({ activeSection, setActiveSection, isAdmin = false, isCoa
       <div className="max-w-7xl mx-auto px-3 sm:px-4">
         <div className="flex items-stretch gap-2 py-3">
           {/* Pinned nav items — scrollable row */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar flex-nowrap flex-1">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar flex-nowrap flex-1 pe-4">
             {pinnedItems.map((item) => {
               const Icon = item.icon;
               const active = activeSection === item.id;
@@ -133,7 +145,7 @@ export function TopNav({ activeSection, setActiveSection, isAdmin = false, isCoa
 
             {/* Dropdown — now outside overflow container so it renders above page */}
             {moreOpen && (
-              <div className="absolute top-full mt-2 right-0 z-[100] bg-white dark:bg-[#141414] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl min-w-[200px] overflow-hidden">
+              <div className="absolute top-full mt-2 left-0 sm:right-0 sm:left-auto z-[100] bg-white dark:bg-[#141414] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl min-w-[200px] max-w-[calc(100vw-2rem)] overflow-hidden">
                 {moreItems.map((item) => {
                   const Icon = item.icon;
                   const active = activeSection === item.id;

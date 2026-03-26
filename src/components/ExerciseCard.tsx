@@ -4,7 +4,9 @@ import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
 import { useLanguage } from "../lib/i18n";
-import { X, ChevronDown, ChevronUp, Play, ExternalLink } from "lucide-react";
+import { X, ChevronDown, ChevronUp, Play, ExternalLink, Share2 } from "lucide-react";
+import { useAwardXP } from "./XPBar";
+import { ShareCard } from "./ShareCard";
 
 interface Exercise {
   _id: string;
@@ -59,30 +61,84 @@ export function ExerciseCard({ exercise, onComplete, isCompleted }: ExerciseCard
   const isAr = language === "ar";
 
   const title = isAr ? (exercise.nameAr || exercise.name) : exercise.name;
+  
+  // ✅ Temporary overrides while DB is updating
+  const gifDumbbell = "https://image.mux.com/wtXNqDUH5CRaPNFgqZBnzkYMMyHT1Yx3i2JoSWaJi7E/animated.gif?height=320&start=1&width=320";
+  const gifMachine = "https://image.mux.com/tF025fWUYIlvmLXUWLSOboTvl02dVUoShB00hVsaaDpD7w/animated.gif";
+
+  const isDumbbellFly = exercise.nameAr?.includes("تفتيح") && exercise.nameAr?.includes("بالدمبل");
+  const isMachineFly = exercise.nameAr?.includes("تفتيح") && (exercise.nameAr?.includes("آلة") || exercise.nameAr?.includes("بيكتورال"));
+  const isFly = isDumbbellFly || isMachineFly;
+  
+  const displayMuscleGroup = isAr ? (isFly ? "الصدر" : exercise.muscleGroupAr) : (isFly ? "Chest" : exercise.muscleGroup);
+  const displayImageUrl = isDumbbellFly ? gifDumbbell : (isMachineFly ? gifMachine : exercise.imageUrl);
+
+  const flyStepsAr = isMachineFly ? [
+    "اجلس على الآلة مع إبقاء ظهرك مستوياً تماماً على المسند. أمسك بالمقابض.",
+    "اعصر عضلات الصدر لتقريب المقابض من بعضها حتى تلتقي في المنتصف.",
+    "توقف لمدة ثانية عند أقصى انقباض للعضلة.",
+    "عُد ببطء إلى وضع البداية مع الحفاظ على التحكم في الحركة."
+  ] : [
+    "استلقِ على بنش مستوٍ مع الإمساك بدمبل في كل يد، مع تقابل الراحتين.",
+    "ارفع الدمبلز فوق صدرك مع الحفاظ على انحناء بسيط جداً في المرفقين.",
+    "أنزل ذراعيك إلى الجانبين ببطء في قوس واسع حتى تشعر بتمدد في عضلات الصدر.",
+    "أعد ذراعيك لوضع البداية عن طريق عصر عضلات الصدر بقوة."
+  ];
+
+  const flyStepsEn = isMachineFly ? [
+    "Sit on the machine with your back flat against the pad. Grip the handles.",
+    "Squeeze your chest muscles to bring the handles together until they meet in the center.",
+    "Pause for a second at the peak contraction.",
+    "Slowly return to the starting position, maintaining control."
+  ] : [
+    "Lie on a flat bench with a dumbbell in each hand, palms facing each other.",
+    "Lift the dumbbells above your chest with a slight bend in your elbows.",
+    "Slowly lower your arms to the sides in a wide arc until you feel a stretch in your chest.",
+    "Return to the starting position by squeezing your chest muscles firmly."
+  ];
+
   const desc = isAr ? (exercise.descriptionAr || exercise.description) : exercise.description;
-  const muscle = isAr ? (exercise.muscleGroupAr || exercise.muscleGroup) : exercise.muscleGroup;
-  const steps = isAr
-    ? (exercise.instructionsAr?.length ? exercise.instructionsAr : exercise.instructions)
-    : exercise.instructions;
+  const muscle = displayMuscleGroup;
+  const steps = isFly 
+    ? (isAr ? flyStepsAr : flyStepsEn)
+    : (isAr ? (exercise.instructionsAr?.length ? exercise.instructionsAr : exercise.instructions) : exercise.instructions);
 
   const [expanded, setExpanded] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [isLogging, setIsLogging] = useState(false);
   const [iframeFailed, setIframeFailed] = useState(false);
+  const [prConfetti, setPrConfetti] = useState(false);
 
   const [logData, setLogData] = useState({
     duration: exercise.duration || 30,
     sets: exercise.sets || 3,
     reps: [12, 12, 12],
     weight: [0, 0, 0],
+    isWarmup: [false, false, false],
+    rpe: [8, 8, 8],
     notes: "",
   });
 
-  const logWorkout = useMutation(api.exercises.logWorkoutSession);
+  const logWorkoutClassic = useMutation(api.exercises.logWorkoutSession);
+  const logWorkoutProgressive = useMutation(api.workout.saveWorkoutSets);
+  const awardXP = useAwardXP();
+  const [levelUpData, setLevelUpData] = useState<{oldLevel:number;newLevel:number;tierName:string;tierIcon:string}|null>(null);
+  const [prShareData, setPrShareData] = useState<{ exercise: string; weight: number; increase: number } | null>(null);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+
+  const muxPlayerUrl = isDumbbellFly 
+    ? "https://player.mux.com/wtXNqDUH5CRaPNFgqZBnzkYMMyHT1Yx3i2JoSWaJi7E" 
+    : isMachineFly 
+    ? "https://player.mux.com/tF025fWUYIlvmLXUWLSOboTvl02dVUoShB00hVsaaDpD7w" 
+    : null;
 
   const videoId = useMemo(() => toYouTubeId(exercise.videoUrl), [exercise.videoUrl]);
   const embedUrl = useMemo(() => (videoId ? `https://www.youtube.com/embed/${videoId}?rel=0` : null), [videoId]);
-  const watchUrl = useMemo(() => (videoId ? `https://www.youtube.com/watch?v=${videoId}` : exercise.videoUrl || null), [videoId, exercise.videoUrl]);
+  const watchUrl = useMemo(() => {
+    if (videoId) return `https://www.youtube.com/watch?v=${videoId}`;
+    if (muxPlayerUrl) return muxPlayerUrl;
+    return exercise.videoUrl || null;
+  }, [videoId, muxPlayerUrl, exercise.videoUrl]);
 
   const difficultyConfig = {
     beginner: { label: isAr ? "مبتدئ" : "Beginner", color: "#59f20d", bg: "rgba(89,242,13,0.12)" },
@@ -99,7 +155,9 @@ export function ExerciseCard({ exercise, onComplete, isCompleted }: ExerciseCard
   const handleLogWorkout = async () => {
     try {
       const estimatedCalories = exercise.caloriesBurned || Math.round(logData.duration * 5);
-      await logWorkout({
+      
+      // 1. Log classic (for backwards compatibility)
+      await logWorkoutClassic({
         exerciseId: exercise._id as any,
         duration: logData.duration,
         sets: logData.sets,
@@ -108,7 +166,47 @@ export function ExerciseCard({ exercise, onComplete, isCompleted }: ExerciseCard
         caloriesBurned: estimatedCalories,
         notes: logData.notes || undefined,
       });
-      toast.success(isAr ? "✅ تم حفظ التمرين!" : "✅ Workout logged!");
+
+      // 2. Log Progressive Overload
+      const progressiveSets = Array.from({ length: logData.sets }).map((_, i) => ({
+        setNumber: i + 1,
+        weight: logData.weight[i] || 0,
+        reps: logData.reps[i] || 0,
+        isWarmup: logData.isWarmup[i] || false,
+        rpe: logData.rpe[i] || 8,
+      }));
+
+      const today = new Date().toISOString().split("T")[0];
+      const result = await logWorkoutProgressive({
+        exerciseId: exercise._id as any,
+        date: today,
+        sets: progressiveSets,
+        notes: logData.notes || undefined,
+      });
+
+        if (result.isNewPR) {
+          setPrConfetti(true);
+          setPrShareData({
+              exercise: title,
+              weight: Math.max(...logData.weight),
+              increase: result.increase || 0
+          });
+          toast.success(isAr ? "🎉 رقم قياسي جديد (PR)!" : "🎉 New Personal Record (PR)!", {
+            duration: 4000,
+          });
+          setTimeout(() => setPrConfetti(false), 3000);
+          // Award PR XP
+          await awardXP("pr", undefined, (lvl) => setLevelUpData(lvl));
+        } else {
+        toast.success(isAr ? "✅ تم حفظ التمرين!" : "✅ Workout logged!");
+        // Award workout XP
+        const hour = new Date().getHours();
+        const meta = { earlyMorning: hour < 6, lateNight: hour >= 22 };
+        await awardXP("workout", meta, (lvl) => setLevelUpData(lvl));
+        if (hour < 6) await awardXP("early_bird", undefined, (lvl) => setLevelUpData(lvl));
+        if (hour >= 22) await awardXP("night_owl", undefined, (lvl) => setLevelUpData(lvl));
+      }
+      
       setIsLogging(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : (isAr ? "حدث خطأ" : "Something went wrong"));
@@ -117,6 +215,78 @@ export function ExerciseCard({ exercise, onComplete, isCompleted }: ExerciseCard
 
   return (
     <>
+      {levelUpData && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setLevelUpData(null)}>
+          <div className="relative mx-4 w-full max-w-sm rounded-3xl border border-[#59f20d]/40 bg-gradient-to-b from-[#1a2d0f] to-[#0c0c0c] p-8 text-center shadow-[0_0_80px_rgba(89,242,13,0.3)]">
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-[#59f20d] mb-4">⬆️ {isAr ? "ترقية!" : "LEVEL UP!"}</p>
+            <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full text-5xl" style={{ background: "radial-gradient(circle, #1a3d0f 0%, #0c0c0c 100%)", border: "3px solid #59f20d", boxShadow: "0 0 40px rgba(89,242,13,0.6)" }}>{levelUpData.tierIcon}</div>
+            <p className="text-lg font-black text-white">{isAr ? `مستوى ${levelUpData.oldLevel}` : `Level ${levelUpData.oldLevel}`}<span className="mx-3 text-[#59f20d]">→</span>{isAr ? `مستوى ${levelUpData.newLevel}` : `Level ${levelUpData.newLevel}`}</p>
+            <p className="mt-1 text-2xl font-black text-[#59f20d]">{levelUpData.tierName}</p>
+            
+            <div className="mt-6 flex flex-col gap-2">
+                <button 
+                    onClick={() => {
+                        setIsShareOpen(true);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#39ff14] py-3 text-sm font-black text-black shadow-[0_0_20px_rgba(57,255,20,0.3)]"
+                >
+                    <Share2 className="w-4 h-4" />
+                    {isAr ? "شارك الإنجاز 📊" : "Share Achievement 📊"}
+                </button>
+                <button onClick={() => setLevelUpData(null)} className="w-full rounded-xl bg-white/10 py-3 text-sm font-black text-white">{isAr ? "🎯 رائع!" : "🎯 Awesome!"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Card Modal for Achievement */}
+      {prShareData && (
+          <ShareCard 
+            isOpen={isShareOpen}
+            onClose={() => {
+                setIsShareOpen(false);
+                setPrShareData(null);
+            }}
+            type="achievement"
+            data={{
+                userName: "DarkFit User", // We don't easily have profile name here without another query
+                titleAr: "رقم قياسي جديد! 🔥",
+                stats: [
+                    { 
+                        labelAr: "التمرين", 
+                        labelEn: "Exercise", 
+                        value: prShareData.exercise 
+                    },
+                    { 
+                        labelAr: "الوزن الجديد", 
+                        labelEn: "New Weight", 
+                        value: prShareData.weight, 
+                        unit: isAr ? " كجم" : " kg",
+                        change: prShareData.increase > 0 ? prShareData.increase : undefined
+                    },
+                    {
+                        labelAr: "المستوى",
+                        labelEn: "Level",
+                        value: levelUpData?.newLevel || "رياضي",
+                    }
+                ]
+            }}
+          />
+      )}
+      {prConfetti && (
+        <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center overflow-hidden">
+          {Array.from({ length: 50 }).map((_, i) => (
+             <div key={i} className="absolute w-3 h-3 text-2xl animate-confetti" 
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    animationDuration: `${Math.random() * 2 + 1}s`,
+                    animationDelay: `${Math.random() * 0.5}s`
+                  }}>
+               {["🔥", "💪", "🏆", "🎉", "⭐"][Math.floor(Math.random() * 5)]}
+             </div>
+          ))}
+        </div>
+      )}
       {/* ── CARD ── */}
       <div className={`group relative rounded-3xl border overflow-hidden flex flex-col transition-all duration-400 hover:shadow-[0_8px_40px_rgba(89,242,13,0.1)] ${isCompleted ? "border-[#59f20d]/60 bg-gradient-to-b from-[#59f20d]/10 to-[#0d1109] opacity-80" : "border-[#2a3528] bg-gradient-to-b from-[#181f17] to-[#0d1109] hover:border-[#59f20d]/50"}`}>
         {/* Hover glow — pointer-events-none, z-0 stays below content */}
@@ -125,38 +295,41 @@ export function ExerciseCard({ exercise, onComplete, isCompleted }: ExerciseCard
         {/* ── Media Section (full-width, proper aspect ratio) ── */}
         <div
           className="relative w-full overflow-hidden cursor-pointer"
-          style={{ aspectRatio: "16/9", background: "#0a0e09" }}
+          style={{ 
+            aspectRatio: "16/9", 
+            background: "#0a0e09" 
+          }}
           onClick={() => setShowModal(true)}
         >
           {/* Image — always full-width, never cropped */}
-          {exercise.imageUrl && (
+          {displayImageUrl && (
             <img
-              src={exercise.imageUrl}
+              src={displayImageUrl}
               alt={title || ""}
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              style={{ objectPosition: "center top" }}
+              style={{ objectPosition: "center 40%" }}
             />
           )}
+
+          {/* Modal update: Use displayImageUrl inside the modal too */}
 
           {/* Dark overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-          {/* Play button overlay */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div
-              className="w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 group-hover:scale-110"
-              style={{
-                background: watchUrl ? "#59f20d" : "rgba(255,255,255,0.12)",
-                boxShadow: watchUrl ? "0 0 24px rgba(89,242,13,0.6)" : "none",
-              }}
-            >
-              {watchUrl ? (
+          {/* Play button overlay — ONLY show if it's a playable video (watchUrl) */}
+          {watchUrl && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div
+                className="w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 group-hover:scale-110"
+                style={{
+                  background: "#59f20d",
+                  boxShadow: "0 0 24px rgba(89,242,13,0.6)",
+                }}
+              >
                 <Play className="w-6 h-6 text-black ml-0.5" fill="black" />
-              ) : (
-                <span className="text-2xl">🏋️</span>
-              )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Click to expand hint */}
           <div className="absolute bottom-2 right-2 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-[10px] text-white/60 font-medium">
@@ -315,16 +488,36 @@ export function ExerciseCard({ exercise, onComplete, isCompleted }: ExerciseCard
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {Array.from({ length: logData.sets }, (_, i) => (
-                  <div key={i} className="flex gap-2 items-center">
-                    <span className="text-[10px] text-[#59f20d] font-bold w-12">{isAr ? `م ${i + 1}` : `Set ${i + 1}`}</span>
-                    <input type="number" placeholder={isAr ? "تكرار" : "Reps"} value={logData.reps[i] || 0}
-                      onChange={(e) => { const r = [...logData.reps]; r[i] = parseInt(e.target.value) || 0; setLogData((p) => ({ ...p, reps: r })); }}
-                      className="flex-1 rounded-xl border border-[#2a3528] bg-black/40 text-white text-xs px-2 py-1.5 focus:outline-none focus:border-[#59f20d]" />
-                    <input type="number" placeholder={isAr ? "وزن كج" : "kg"} value={logData.weight[i] || 0}
-                      onChange={(e) => { const w = [...logData.weight]; w[i] = parseFloat(e.target.value) || 0; setLogData((p) => ({ ...p, weight: w })); }}
-                      className="flex-1 rounded-xl border border-[#2a3528] bg-black/40 text-white text-xs px-2 py-1.5 focus:outline-none focus:border-[#59f20d]" step={0.5} />
+                  <div key={i} className="flex flex-col gap-1.5 p-2 rounded-xl bg-black/40 border border-[#2a3528]">
+                    <div className="flex gap-2 items-center">
+                      <span className="text-[10px] text-[#59f20d] font-bold w-6">{i + 1}</span>
+                      <input type="number" placeholder={isAr ? "تكرار" : "Reps"} value={logData.reps[i] || 0}
+                        onChange={(e) => { const r = [...logData.reps]; r[i] = parseInt(e.target.value) || 0; setLogData((p) => ({ ...p, reps: r })); }}
+                        className="flex-1 rounded-xl border border-[#2a3528] bg-zinc-900 text-white text-xs px-2 py-1.5 focus:outline-none focus:border-[#59f20d]" />
+                      <input type="number" placeholder={isAr ? "وزن كج" : "kg"} value={logData.weight[i] || 0}
+                        onChange={(e) => { const w = [...logData.weight]; w[i] = parseFloat(e.target.value) || 0; setLogData((p) => ({ ...p, weight: w })); }}
+                        className="flex-1 rounded-xl border border-[#2a3528] bg-zinc-900 text-white text-xs px-2 py-1.5 focus:outline-none focus:border-[#59f20d]" step={0.5} />
+                    </div>
+                    {/* Advanced metrics row: Warmup & RPE */}
+                    <div className="flex gap-2 items-center pl-8 text-[10px]">
+                      <label className="flex items-center gap-1 cursor-pointer text-gray-400 hover:text-white">
+                        <input type="checkbox" checked={logData.isWarmup[i] || false}
+                          onChange={(e) => { const wu = [...logData.isWarmup]; wu[i] = e.target.checked; setLogData((p) => ({ ...p, isWarmup: wu })); }}
+                          className="accent-[#59f20d]" />
+                        {isAr ? "تسخين" : "Warmup"}
+                      </label>
+                      <div className="flex items-center gap-1 ml-auto text-gray-400">
+                        <span>RPE:</span>
+                        <select value={logData.rpe[i] || 8}
+                          onChange={(e) => { const rpe = [...logData.rpe]; rpe[i] = parseInt(e.target.value) || 8; setLogData((p) => ({ ...p, rpe })); }}
+                          className="bg-zinc-900 border border-[#2a3528] rounded-lg px-1 py-0.5 outline-none focus:border-[#59f20d]"
+                        >
+                          {[5,6,7,8,9,10].map(v => <option key={v} value={v}>{v}</option>)}
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -394,9 +587,14 @@ export function ExerciseCard({ exercise, onComplete, isCompleted }: ExerciseCard
                   <iframe src={embedUrl} className="w-full h-full" allow="autoplay; fullscreen" allowFullScreen
                     onError={() => setIframeFailed(true)} />
                 </div>
-              ) : exercise.imageUrl ? (
+              ) : (muxPlayerUrl && !iframeFailed) ? (
+                <div className="rounded-2xl overflow-hidden" style={{ aspectRatio: "16/9" }}>
+                   <iframe src={muxPlayerUrl} className="w-full h-full" allow="autoplay; fullscreen" allowFullScreen
+                    onError={() => setIframeFailed(true)} />
+                </div>
+              ) : displayImageUrl ? (
                 <div className="rounded-2xl overflow-hidden relative" style={{ aspectRatio: "16/9" }}>
-                  <img src={exercise.imageUrl} alt={title} className="w-full h-full object-cover" style={{ objectPosition: "center top" }} />
+                  <img src={displayImageUrl} alt={title} className="w-full h-full object-cover" style={{ objectPosition: "center 40%" }} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                   {watchUrl && (
                     <a href={watchUrl} target="_blank" rel="noreferrer"

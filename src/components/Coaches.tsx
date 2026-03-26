@@ -71,9 +71,7 @@ function CoachCard({
           src={
             coach.imageResolved ||
             coach.imageUrl ||
-            `https://ui-avatars.com/api/?name=${encodeURIComponent(
-              displayName
-            )}&size=400&background=59f20d&color=0a0d08&bold=true`
+            "https://images.unsplash.com/photo-1594381898411-846e7d193883?auto=format&fit=crop&w=800&q=80"
           }
           alt={displayName}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
@@ -300,9 +298,7 @@ export function Coaches() {
                 src={
                   selected.imageResolved ||
                   selected.imageUrl ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    displayName(selected)
-                  )}&size=800&background=59f20d&color=0a0d08&bold=true`
+                  "https://images.unsplash.com/photo-1594381898411-846e7d193883?auto=format&fit=crop&w=800&q=80"
                 }
                 alt={displayName(selected)}
                 className="w-full h-full object-cover"

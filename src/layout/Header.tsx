@@ -79,11 +79,11 @@ export function Header({ activeSection, setActiveSection, isAdmin, onSignInClick
 
 
 
-            {/* Admin Panel Button */}
+            {/* Admin Panel Button — hidden on mobile */}
             {isAdmin && (
               <button
                 onClick={() => setActiveSection("admin")}
-                className={`px-3 py-2 rounded-2xl text-xs sm:text-sm font-semibold transition flex items-center gap-2 ${activeSection === "admin"
+                className={`hidden md:flex px-3 py-2 rounded-2xl text-xs sm:text-sm font-semibold transition items-center gap-2 ${activeSection === "admin"
                   ? "bg-[#59f20d] text-zinc-950 shadow-[0_0_25px_rgba(89,242,13,0.5)] border border-[#59f20d]"
                   : "bg-white text-zinc-700 border border-slate-200 shadow-soft hover:bg-herb-50 dark:bg-[#1a2318]/70 dark:text-zinc-100 dark:border-slate-700 dark:hover:bg-[#1a2318]"
                   }`}

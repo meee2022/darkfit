@@ -116,6 +116,9 @@ export function SignInForm() {
     if (/invalid/i.test(msg) && /code/i.test(msg)) return t("err_reset_code_invalid");
     if (/expired/i.test(msg)) return t("err_reset_code_expired");
     if (/too many/i.test(msg) || /rate/i.test(msg)) return t("err_rate_limit");
+    if (/server error/i.test(msg)) {
+      return "خطأ في الخادم: تأكد من إعداد مفتاح Resend وأنك ترسل لكود لبريدك المسجل لديهم فقط (قيود الحساب المجاني).";
+    }
 
     return msg || t("err_generic");
   }
@@ -243,6 +246,102 @@ export function SignInForm() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (mode === "reset_request") {
+    return (
+      <div className="w-full">
+        <div className="space-y-6">
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-20 h-20 rounded-3xl bg-black border border-zinc-800/60 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(89,242,13,0.2)]">
+              <Lock className="w-10 h-10 text-[#59f20d]" />
+            </div>
+            <h2 className="text-2xl font-black text-white text-center">استعادة الحساب</h2>
+          </div>
+
+          <form onSubmit={handleResetRequest} className="space-y-5">
+            <input
+              type="email"
+              placeholder="البريد الإلكتروني"
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+              className="w-full bg-black/40 border border-zinc-800/60 rounded-2xl px-5 py-4.5 text-white text-right focus:outline-none focus:border-[#59f20d]/40 transition-all text-base"
+            />
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-[#59f20d] text-zinc-950 font-black py-4.5 rounded-2xl shadow-[0_8px_30px_rgba(89,242,13,0.2)] text-lg"
+            >
+              {submitting ? "إرسال..." : "إرسال الرمز"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("auth")}
+              className="w-full text-zinc-500 text-sm font-bold hover:text-[#59f20d] transition-colors"
+            >
+              إلغاء
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "reset_verify") {
+    return (
+      <div className="w-full">
+        <div className="space-y-6">
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-20 h-20 rounded-3xl bg-black border border-zinc-800/60 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(89,242,13,0.2)]">
+              <Sparkles className="w-10 h-10 text-[#59f20d]" />
+            </div>
+            <h2 className="text-2xl font-black text-white text-center">تأكيد الرمز</h2>
+          </div>
+
+          <form onSubmit={handleResetVerify} className="space-y-5">
+            <input
+              type="text"
+              placeholder="أدخل الرمز"
+              value={resetCode}
+              onChange={(e) => setResetCode(e.target.value)}
+              className="w-full bg-black/40 border border-zinc-800/60 rounded-2xl px-5 py-4.5 text-white text-center focus:outline-none focus:border-[#59f20d]/40 transition-all text-base"
+              dir="ltr"
+            />
+            <div className="relative group">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="كلمة المرور الجديدة"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full bg-black/40 border border-zinc-800/60 rounded-2xl px-5 py-4.5 text-white text-center focus:outline-none focus:border-[#59f20d]/40 transition-all text-base"
+                dir="ltr"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-[#59f20d] transition-colors"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-[#59f20d] text-zinc-950 font-black py-4.5 rounded-2xl shadow-[0_8px_30px_rgba(89,242,13,0.2)] text-lg"
+            >
+              {submitting ? "حفظ..." : "تحديث كلمة المرور"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("auth")}
+              className="w-full text-zinc-500 text-sm font-bold hover:text-[#59f20d] transition-colors"
+            >
+              العودة
+            </button>
+          </form>
+        </div>
+      </div>
+    );
   }
 
   if (flow === "signIn") {
@@ -467,99 +566,4 @@ export function SignInForm() {
       </div>
     );
   }
-
-  if (mode === "reset_request") {
-    return (
-      <div className="w-full">
-        <div className="space-y-6">
-          <div className="flex flex-col items-center mb-6">
-            <div className="w-20 h-20 rounded-3xl bg-black border border-zinc-800/60 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(89,242,13,0.2)]">
-              <Lock className="w-10 h-10 text-[#59f20d]" />
-            </div>
-            <h2 className="text-2xl font-black text-white text-center">استعادة الحساب</h2>
-          </div>
-
-          <form onSubmit={handleResetRequest} className="space-y-5">
-            <input
-              type="email"
-              placeholder="البريد الإلكتروني"
-              value={resetEmail}
-              onChange={(e) => setResetEmail(e.target.value)}
-              className="w-full bg-black/40 border border-zinc-800/60 rounded-2xl px-5 py-4.5 text-white text-right focus:outline-none focus:border-[#59f20d]/40 transition-all text-base"
-            />
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-[#59f20d] text-zinc-950 font-black py-4.5 rounded-2xl shadow-[0_8px_30px_rgba(89,242,13,0.2)] text-lg"
-            >
-              {submitting ? "إرسال..." : "إرسال الرمز"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("auth")}
-              className="w-full text-zinc-500 text-sm font-bold hover:text-[#59f20d] transition-colors"
-            >
-              إلغاء
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  // Reset Verify Mode
-  return (
-    <div className="w-full">
-      <div className="space-y-6">
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-20 h-20 rounded-3xl bg-black border border-zinc-800/60 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(89,242,13,0.2)]">
-            <Sparkles className="w-10 h-10 text-[#59f20d]" />
-          </div>
-          <h2 className="text-2xl font-black text-white text-center">تأكيد الرمز</h2>
-        </div>
-
-        <form onSubmit={handleResetVerify} className="space-y-5">
-          <input
-            type="text"
-            placeholder="أدخل الرمز"
-            value={resetCode}
-            onChange={(e) => setResetCode(e.target.value)}
-            className="w-full bg-black/40 border border-zinc-800/60 rounded-2xl px-5 py-4.5 text-white text-center focus:outline-none focus:border-[#59f20d]/40 transition-all text-base"
-            dir="ltr"
-          />
-          <div className="relative group">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="كلمة المرور الجديدة"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full bg-black/40 border border-zinc-800/60 rounded-2xl px-5 py-4.5 text-white text-center focus:outline-none focus:border-[#59f20d]/40 transition-all text-base"
-              dir="ltr"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-[#59f20d] transition-colors"
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full bg-[#59f20d] text-zinc-950 font-black py-4.5 rounded-2xl shadow-[0_8px_30px_rgba(89,242,13,0.2)] text-lg"
-          >
-            {submitting ? "حفظ..." : "تحديث كلمة المرور"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("auth")}
-            className="w-full text-zinc-500 text-sm font-bold hover:text-[#59f20d] transition-colors"
-          >
-            العودة
-          </button>
-        </form>
-      </div>
-    </div>
-  );
 }

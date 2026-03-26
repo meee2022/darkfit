@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 import { useLanguage } from "../lib/i18n";
+import { MealPhotoAnalyzer } from "./MealPhotoAnalyzer";
 
 interface NutritionSectionProps {
   targetGroup?: "general" | "diabetes" | "seniors" | "children";
@@ -83,6 +84,7 @@ export default function NutritionSectionLight({ targetGroup = "general" }: Nutri
   const updateQty = useMutation(api.nutrition.updateLogMealFoodQuantity);
   const clearLog = useMutation(api.nutrition.clearTodayLog);
   const setWater = useMutation(api.nutrition.setWaterIntake);
+  const addAnalyzedMeal = useMutation(api.nutrition.addAnalyzedMealToLog);
 
   const header = useMemo(() => {
     if (targetGroup === "diabetes") {
@@ -218,6 +220,24 @@ export default function NutritionSectionLight({ targetGroup = "general" }: Nutri
   async function onRemove(mt: any, foodId: any) {
     await updateQty({ mealType: mt, foodId, quantity: 0, date: todayISO() });
   }
+
+  const handleMealAnalysis = async (result: any) => {
+    try {
+      await addAnalyzedMeal({
+        mealType: "lunch", // Default to lunch or ask user
+        mealNameEn: result.mealNameEn,
+        mealNameAr: result.mealNameAr,
+        calories: result.totalCalories,
+        protein: result.macros.protein,
+        carbs: result.macros.carbs,
+        fat: result.macros.fat,
+      });
+      alert(isAr ? "تمت إضافة الوجبة بنجاح إلى سجل التغذية!" : "Meal successfully added to nutrition log!");
+    } catch (err) {
+      console.error("Failed to add analyzed meal:", err);
+      alert(isAr ? "فشل إضافة الوجبة. حاول مرة أخرى." : "Failed to add meal. Please try again.");
+    }
+  };
 
   return (
     <div
@@ -359,7 +379,8 @@ export default function NutritionSectionLight({ targetGroup = "general" }: Nutri
         </div>
 
         {/* quick CTA */}
-        <div className="mt-4 flex flex-wrap gap-2 justify-end">
+        <div className="mt-4 flex flex-wrap gap-2 justify-end items-center">
+          <MealPhotoAnalyzer onAdd={handleMealAnalysis} />
           <button
             type="button"
             className="px-4 py-2 rounded-2xl border border-slate-200 text-xs sm:text-sm font-extrabold text-slate-700 bg-white hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:bg-black/60 dark:hover:bg-[#0a0d08]"

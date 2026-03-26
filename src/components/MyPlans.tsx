@@ -53,10 +53,7 @@ export function MyPlans() {
     );
   }
 
-  // Render Nutrition Plan when tab is active
-  if (activeTab === "nutrition") {
-    return <MyNutritionPlan onBack={() => setActiveTab("workout")} />;
-  }
+
 
   if (!plans.length) {
     return (

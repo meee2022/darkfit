@@ -39,5 +39,6 @@ window.addEventListener('message', async (message) => {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ['react', 'react-dom'],
   },
 }));

@@ -121,7 +121,82 @@ export const getAllExercises = query({
       q = q.filter((x) => x.eq(x.field("category"), args.category));
     }
 
-    return await q.collect();
+    const results = await q.collect();
+
+    // Virtual injection of missing fly exercises
+    const injectables = [
+      {
+        _id: "virtual_dumbbell_fly",
+        name: "Dumbbell Flyes",
+        nameAr: "تفتيح صدر بالدمبل (فلايز)",
+        description: "Exercise targeting the chest muscles (Pectoralis Major).",
+        descriptionAr: "حركة عزل تستهدف عضلات الصدر.",
+        muscleGroup: "Chest",
+        muscleGroupAr: "الصدر",
+        difficulty: "intermediate",
+        equipment: ["dumbbell", "flat bench"],
+        instructions: [
+          "Lie on a flat bench with a dumbbell in each hand, palms facing each other.",
+          "Lift the dumbbells above your chest with a slight bend in your elbows.",
+          "Lower your arms to the sides in a wide arc until you feel a stretch in your chest.",
+          "Return to the starting position by squeezing your chest muscles."
+        ],
+        instructionsAr: [
+            "استلقِ على بنش مستوٍ مع الإمساك بدمبل في كل يد، مع تقابل الراحتين.",
+            "ارفع الدمبلز فوق صدرك مع الحفاظ على انحناء بسيط جداً في المرفقين.",
+            "أنزل ذراعيك إلى الجانبين ببطء في قوس واسع حتى تشعر بتمدد في عضلات الصدر.",
+            "أعد ذراعيك لوضع البداية عن طريق عصر عضلات الصدر بقوة."
+        ],
+        imageUrl: "https://image.mux.com/wtXNqDUH5CRaPNFgqZBnzkYMMyHT1Yx3i2JoSWaJi7E/animated.gif?height=320&start=1&width=320",
+        isActive: true,
+        category: "strength",
+        targetGender: "both"
+      },
+      {
+        _id: "virtual_pec_deck_fly",
+        name: "Pec Deck Fly",
+        nameAr: "تفتيح صدر بالآلة (بيكتورال فلاي)",
+        description: "Machine-based isolation exercise for the chest muscles.",
+        descriptionAr: "تمرين عزل باستخدام الآلة لعضلات الصدر.",
+        muscleGroup: "Chest",
+        muscleGroupAr: "الصدر",
+        difficulty: "beginner",
+        equipment: ["machine"],
+        instructions: [
+          "Sit on the machine with your back flat against the pad. Grip the handles.",
+          "Squeeze your chest muscles to bring the handles together until they meet in the center.",
+          "Pause for a second at the peak contraction.",
+          "Slowly return to the starting position, maintaining control."
+        ],
+        instructionsAr: [
+          "اجلس على الآلة مع إبقاء ظهرك مستوياً تماماً على المسند. أمسك بالمقابض.",
+          "اعصر عضلات الصدر لتقريب المقابض من بعضها حتى تلتقي في المنتصف.",
+          "توقف لمدة ثانية عند أقصى انقباض للعضلة.",
+          "عُد ببطء إلى وضع البداية مع الحفاظ على التحكم في الحركة."
+        ],
+        imageUrl: "https://image.mux.com/tF025fWUYIlvmLXUWLSOboTvl02dVUoShB00hVsaaDpD7w/animated.gif",
+        isActive: true,
+        category: "strength",
+        targetGender: "both"
+      }
+    ];
+
+    for (const item of injectables) {
+        if (!results.some(r => r.nameAr === item.nameAr)) {
+            // Only inject if it matches filters
+            let matches = true;
+            if (args.muscleGroup && item.muscleGroup !== args.muscleGroup) matches = false;
+            if (args.difficulty && item.difficulty !== args.difficulty) matches = false;
+            if (args.category && item.category !== args.category) matches = false;
+            
+            if (matches) {
+                // @ts-ignore
+                results.push({ ...item, _creationTime: Date.now() });
+            }
+        }
+    }
+
+    return results;
   },
 });
 
@@ -132,6 +207,18 @@ export const listExerciseOptions = query({
       .query("exercises")
       .filter((x) => x.eq(x.field("isActive"), true))
       .collect();
+
+    // Virtual injection
+    const injectables = [
+        { _id: "virtual_dumbbell_fly" as any, name: "Dumbbell Flyes", nameAr: "تفتيح صدر بالدمبل (فلايز)" },
+        { _id: "virtual_pec_deck_fly" as any, name: "Pec Deck Fly", nameAr: "تفتيح صدر بالآلة (بيكتورال فلاي)" }
+    ];
+
+    for (const item of injectables) {
+        if (!rows.some(r => r.nameAr === item.nameAr)) {
+            rows.push(item as any);
+        }
+    }
 
     return rows
       .map((e: any) => ({
@@ -742,4 +829,164 @@ export const fetchRapidApiGifs = action({
     
     return { success: true, insertedOrUpdated, totalFetched: items.length };
   }
+});
+export const tempAddDumbbellFly = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Search by both English and Arabic names
+    const existing = await ctx.db
+      .query("exercises")
+      .filter((q) => 
+        q.or(
+          q.eq(q.field("name"), "Dumbbell Flyes"),
+          q.eq(q.field("nameAr"), "تفتيح صدر بالدمبل (فلايز)")
+        )
+      )
+      .first();
+
+    const flyData = {
+      name: "Dumbbell Flyes",
+      nameAr: "تفتيح صدر بالدمبل (فلايز)",
+      description: "Exercise targeting the chest muscles (Pectoralis Major).",
+      descriptionAr: "حركة عزل تستهدف عضلات الصدر.",
+      muscleGroup: "Chest" as "Chest",
+      muscleGroupAr: "الصدر",
+      difficulty: "intermediate" as "intermediate",
+      equipment: ["dumbbell", "flat bench"],
+      instructions: [
+        "Lie on a flat bench with a dumbbell in each hand resting on top of your thighs. The palms of your hands will be facing each other.",
+        "Then using your thighs to help you get the dumbbells up, lift the dumbbells one at a time so you can hold them in front of you at shoulder width with the palms of the hands facing each other. Raise the dumbbells up like you're pressing them, but stop and hold the light bend in your elbows.",
+        "With a slight bend on your elbows in order to prevent stress at the biceps tendon, lower your arms out at both sides in a wide arc until you feel a stretch on your chest. Breathe in as you perform this portion of the movement.",
+        "Return your arms back to the starting position as you squeeze your chest muscles and exhale.",
+        "Hold for a second at the contracted position and repeat."
+      ],
+      instructionsAr: [
+        "استلقِ على بنش مستوٍ مع الإمساك بدمبل في كل يد، وضعهما فوق فخذيك بحيث تكون الراحتان متقابلتين.",
+        "استخدم فخذيك لمساعدتك على رفع الدمبلز، واحداً تلو الآخر، حتى تمسكهما أمامك بعرض الكتفين مع تقابل الراحتين.",
+        "مع الحفاظ على انحناء بسيط في المرفقين، أنزل ذراعيك إلى الجانبين في قوس واسع حتى تشعر بتمدد في عضلات الصدر. خذ شهيقاً أثناء هذه الحركة.",
+        "أعد ذراعيك إلى وضع البداية مع عصر عضلات الصدر وإخراج زفير.",
+        "ثبت الوضع لمدة ثانية وكرر الحركة."
+      ],
+      imageUrl: "https://image.mux.com/wtXNqDUH5CRaPNFgqZBnzkYMMyHT1Yx3i2JoSWaJi7E/animated.gif?height=320&start=1&width=320",
+      isActive: true,
+      category: "strength" as "strength",
+      targetGender: "both" as "both"
+    };
+
+    if (existing) {
+      return await ctx.db.patch(existing._id, flyData);
+    }
+
+    return await ctx.db.insert("exercises", flyData);
+  },
+});
+
+export const tempAddPecDeckFly = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const flyData = {
+      name: "Pec Deck Fly",
+      nameAr: "تفتيح صدر بالآلة (بيكتورال فلاي)",
+      description: "Machine-based isolation exercise for the chest muscles.",
+      descriptionAr: "تمرين عزل باستخدام الآلة لعضلات الصدر.",
+      muscleGroup: "Chest" as "Chest",
+      muscleGroupAr: "الصدر",
+      difficulty: "beginner" as "beginner",
+      equipment: ["machine"],
+      instructions: [
+        "Sit on the machine with your back flat against the pad. Grip the handles.",
+        "Squeeze your chest muscles to bring the handles together until they meet in the center.",
+        "Pause for a second at the peak contraction.",
+        "Slowly return to the starting position, maintaining control."
+      ],
+      instructionsAr: [
+        "اجلس على الآلة مع إبقاء ظهرك مستوياً تماماً على المسند. أمسك بالمقابض.",
+        "اعصر عضلات الصدر لتقريب المقابض من بعضها حتى تلتقي في المنتصف.",
+        "توقف لمدة ثانية عند أقصى انقباض للعضلة.",
+        "عُد ببطء إلى وضع البداية مع الحفاظ على التحكم في الحركة."
+      ],
+      imageUrl: "https://image.mux.com/tF025fWUYIlvmLXUWLSOboTvl02dVUoShB00hVsaaDpD7w/animated.gif",
+      isActive: true,
+      category: "strength" as "strength",
+      targetGender: "both" as "both"
+    };
+
+    const existing = await ctx.db
+      .query("exercises")
+      .filter((q) => q.eq(q.field("nameAr"), "تفتيح صدر بالآلة (بيكتورال فلاي)"))
+      .first();
+
+    if (existing) {
+      return await ctx.db.patch(existing._id, flyData);
+    }
+    return await ctx.db.insert("exercises", flyData);
+  },
+});
+
+/* =========================
+   WORKOUT OF THE DAY (WOD)
+========================= */
+export const getWorkoutOfTheDay = query({
+  args: {},
+  handler: async (ctx) => {
+    const allExercises = await ctx.db
+      .query("exercises")
+      .filter((x) => x.eq(x.field("isActive"), true))
+      .collect();
+
+    if (allExercises.length === 0) return [];
+
+    // Use today's date as a deterministic seed
+    const today = new Date();
+    const dateSeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+
+    // Simple hash function for deterministic shuffle
+    function seededRandom(seed: number) {
+      let s = seed;
+      return () => {
+        s = (s * 9301 + 49297) % 233280;
+        return s / 233280;
+      };
+    }
+
+    const rng = seededRandom(dateSeed);
+
+    // Group exercises by muscle group for balance
+    const byMuscle: Record<string, typeof allExercises> = {};
+    for (const ex of allExercises) {
+      const mg = ex.muscleGroup;
+      if (!byMuscle[mg]) byMuscle[mg] = [];
+      byMuscle[mg].push(ex);
+    }
+
+    const muscleGroups = Object.keys(byMuscle);
+    const selected: typeof allExercises = [];
+    const usedMuscles = new Set<string>();
+
+    // Pick 4 exercises from different muscle groups
+    for (let i = 0; i < 4 && muscleGroups.length > 0; i++) {
+      const available = muscleGroups.filter((mg) => !usedMuscles.has(mg));
+      if (available.length === 0) break;
+      const mgIdx = Math.floor(rng() * available.length);
+      const mg = available[mgIdx];
+      usedMuscles.add(mg);
+      const exercises = byMuscle[mg];
+      const exIdx = Math.floor(rng() * exercises.length);
+      selected.push(exercises[exIdx]);
+    }
+
+    return selected.map((ex) => ({
+      _id: ex._id,
+      name: ex.name,
+      nameAr: ex.nameAr,
+      muscleGroup: ex.muscleGroup,
+      muscleGroupAr: ex.muscleGroupAr,
+      difficulty: ex.difficulty,
+      imageUrl: ex.imageUrl,
+      sets: ex.sets,
+      reps: ex.reps,
+      caloriesBurned: ex.caloriesBurned,
+      category: ex.category,
+    }));
+  },
 });

@@ -149,7 +149,20 @@ export const getStreaks = query({
             .withIndex("by_user", (q) => q.eq("userId", userId))
             .first();
 
-        return streak;
+        if (!streak) return null;
+
+        const lastWorkout = new Date(streak.lastWorkoutDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        lastWorkout.setHours(0, 0, 0, 0);
+
+        const diffTime = Math.abs(today.getTime() - lastWorkout.getTime());
+        const daysSinceLastWorkout = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return {
+            ...streak,
+            daysSinceLastWorkout,
+        };
     },
 });
 
@@ -271,32 +284,47 @@ export const getDashboardStats = query({
             };
         }
 
-        // Get total sessions from streaks
-        const streak = await ctx.db
-            .query("streaks")
-            .withIndex("by_user", (q) => q.eq("userId", userId))
-            .first();
-            
-        const totalSessions = streak?.totalWorkouts || 0;
-
-        // Get all workout sessions to calculate calories and duration
         const sessions = await ctx.db
             .query("workoutSessions")
             .withIndex("by_user", (q) => q.eq("userId", userId))
             .collect();
 
+        const distinctDays = new Set();
         let totalCalories = 0;
         let totalMinutes = 0;
+        let weeklySessionsCount = 0;
+
+        // Start of the week calculation (last 7 days)
+        const now = Date.now();
+        const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
 
         for (const session of sessions) {
             totalCalories += session.caloriesBurned || 0;
             totalMinutes += session.duration || 0;
+            
+            // Check if session date is within the last 7 days
+            if (session.date) {
+               distinctDays.add(session.date);
+               const sessionTime = new Date(session.date).getTime();
+               if (sessionTime > oneWeekAgo) {
+                   weeklySessionsCount++;
+               }
+            }
         }
 
+        const totalSessions = distinctDays.size;
         const totalHours = Math.round(totalMinutes / 60);
+
+        // Fetch User Profile to get personalized target days
+        const profile = await ctx.db
+            .query("profiles")
+            .withIndex("by_user", (q) => q.eq("userId", userId))
+            .first();
+            
+        const targetDays = profile?.trainingDaysPerWeek || 4;
         
-        // Mock completion percentage based on a monthly goal of 20 sessions
-        const completion = Math.min(100, Math.round((totalSessions / 20) * 100));
+        // Calculate real weekly completion
+        const completion = Math.min(100, Math.round((weeklySessionsCount / targetDays) * 100));
 
         return {
             totalSessions,

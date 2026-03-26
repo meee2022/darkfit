@@ -160,12 +160,17 @@ export function MobileBottomNav({ activeSection, onChange }: Props) {
   ];
 
   const moreItems: NavConfig[] = [
-    { id: "plans",      labelAr: "خططي",           labelEn: "My Plans",    emoji: "📋", color: "#59f20d" },
-    { id: "supplements",labelAr: "المكملات",        labelEn: "Supplements", emoji: "💊", color: "#fbbf24" },
-    { id: "coaches",    labelAr: "المدربون",        labelEn: "Coaches",     emoji: "👤", color: "#60a5fa" },
-    { id: "health",     labelAr: "الصحة",          labelEn: "Health",      emoji: "❤️", color: "#fb7185" },
-    { id: "calculator", labelAr: "حاسبات",         labelEn: "Calculator",  emoji: "🧮", color: "#34d399" },
-    { id: "coachPlans", labelAr: "خطط المتدربين", labelEn: "Client Plans",emoji: "📅", color: "#a78bfa" },
+    { id: "plans",         labelAr: "خططي",            labelEn: "My Plans",      emoji: "📋", color: "#59f20d" },
+    { id: "smartCoach",    labelAr: "المدرب الذكي",    labelEn: "Smart Coach",   emoji: "🧠", color: "#60a5fa" },
+    { id: "supplements",   labelAr: "المكملات",         labelEn: "Supplements",   emoji: "💊", color: "#fbbf24" },
+    { id: "coaches",       labelAr: "المدربون",         labelEn: "Coaches",       emoji: "👤", color: "#60a5fa" },
+    { id: "health",        labelAr: "الصحة",           labelEn: "Health",        emoji: "❤️", color: "#fb7185" },
+    { id: "progress",      labelAr: "تتبع التطور",     labelEn: "Progress",      emoji: "📈", color: "#59f20d" },
+    { id: "calculator",    labelAr: "حاسبات",          labelEn: "Calculator",    emoji: "🧮", color: "#34d399" },
+    { id: "social",        labelAr: "المجتمع",          labelEn: "Social",        emoji: "🏆", color: "#a78bfa" },
+    { id: "messages",      labelAr: "المحادثات",       labelEn: "Messages",      emoji: "💬", color: "#59f20d" },
+    { id: "workoutHistory",labelAr: "سجل التمارين",   labelEn: "History",       emoji: "📅", color: "#38bdf8" },
+    { id: "about",         labelAr: "عن التطبيق",      labelEn: "About App",     emoji: "✨", color: "#59f20d" },
   ];
 
   const isHomeActive = activeSection === "dashboard";

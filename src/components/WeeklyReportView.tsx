@@ -1,0 +1,111 @@
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { useLanguage } from "../lib/i18n";
+import { TrendingUp, CheckCircle2, AlertCircle, Calendar, ArrowRight, Star } from "lucide-react";
+
+interface WeeklyReportViewProps {
+  report: {
+    reportTextAr: string;
+    reportTextEn: string;
+    score: number;
+    recommendations: string[];
+    weekStartDate: string;
+  };
+}
+
+export function WeeklyReportView({ report }: WeeklyReportViewProps) {
+  const { language } = useLanguage();
+  const isAr = language === "ar";
+
+  const getScoreColor = (score: number) => {
+    if (score >= 8) return "text-neon-400";
+    if (score >= 5) return "text-amber-400";
+    return "text-red-400";
+  };
+
+  const tr = (en: string, ar: string) => isAr ? ar : en;
+
+  return (
+    <div className="bg-gradient-to-br from-[#111] to-black border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-500">
+      <div className="p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 bg-white/[0.02]">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-[1.5rem] bg-neon-400/10 flex items-center justify-center border border-neon-400/20">
+            <Calendar className="w-8 h-8 text-neon-400" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-black text-white">{tr("Weekly Performance Report", "تقرير الأداء الأسبوعي")}</h3>
+            <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">
+              {tr("Week of", "أسبوع")} {report.weekStartDate}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center">
+          <div className="relative w-24 h-24">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="#222" strokeWidth="8" />
+              <circle 
+                cx="50" cy="50" r="45" fill="none" 
+                stroke="currentColor" 
+                strokeWidth="8" 
+                strokeLinecap="round"
+                strokeDasharray={`${283 * (report.score / 10)} 283`}
+                className={`${getScoreColor(report.score)} transition-all duration-1000 ease-out`}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-black text-white leading-none">{report.score}</span>
+              <span className="text-[8px] text-zinc-500 font-bold tracking-tighter mt-1">/ 10</span>
+            </div>
+          </div>
+          <span className={`text-xs font-black uppercase mt-2 tracking-widest ${getScoreColor(report.score)}`}>
+            {report.score >= 8 ? tr("EXCELLENT", "ممتاز") : report.score >= 5 ? tr("GOOD", "جيد") : tr("NEEDS WORK", "يحتاج تحسين")}
+          </span>
+        </div>
+      </div>
+
+      <div className="p-8 space-y-8">
+        {/* Core Analysis */}
+        <div className="relative">
+          <div className="absolute top-0 left-0 w-12 h-12 bg-neon-400/5 rounded-full blur-2xl"></div>
+          <h4 className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
+            <TrendingUp className="w-3 h-3" />
+            {tr("A.I. INSIGHTS", "تحليلات الذكاء الاصطناعي")}
+          </h4>
+          <p className="text-lg text-white font-medium leading-relaxed italic border-l-2 border-neon-400 pl-6 dark:border-neon-400 Ar:border-r-2 Ar:border-l-0 Ar:pl-0 Ar:pr-6 whitespace-pre-wrap">
+            {isAr ? report.reportTextAr : report.reportTextEn}
+          </p>
+        </div>
+
+        {/* Recommendations */}
+        <div>
+          <h4 className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
+            <CheckCircle2 className="w-3 h-3" />
+            {tr("PRIORITY RECOMMENDATIONS", "توصيات الأولوية")}
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {report.recommendations.map((rec, i) => (
+              <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-start gap-3 hover:bg-white/10 transition-colors group">
+                <div className="w-6 h-6 rounded-lg bg-neon-400/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-neon-400 group-hover:text-black transition-colors">
+                  <Star className="w-3 h-3 text-neon-400 group-hover:text-black" />
+                </div>
+                <p className="text-sm text-zinc-300 font-medium leading-relaxed">{rec}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="pt-4 flex justify-between items-center text-[10px] text-zinc-600 font-bold uppercase tracking-widest">
+           <div className="flex items-center gap-2">
+             <div className="w-2 h-2 rounded-full bg-neon-400"></div>
+             {tr("Generated by DarkFit AI Pro", "تم التوليد بواسطة DarkFit AI Pro")}
+           </div>
+           <div className="flex items-center gap-2 group cursor-pointer hover:text-white transition-colors">
+              {tr("Share Report", "مشاركة التقرير")}
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform Ar:rotate-180 Ar:group-hover:-translate-x-1" />
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+}

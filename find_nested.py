@@ -17,13 +17,19 @@ def find_nested_buttons(directory):
                         if pattern.search(content):
                             print(f'Found nested button in: {path}')
                             # Find line number
-                            lines = content.split('\n')
-                            for i, line in enumerate(lines):
+                            file_lines = content.split('\n')
+                            for i, line in enumerate(file_lines):
                                 if '<button' in line:
                                     # Check next lines for another <button
-                                    for j in range(i, min(i + 10, len(lines))):
-                                        if j > i and '<button' in lines[j] and '</button>' not in lines[i:j]:
-                                            print(f'  Possible match near line {i+1}')
+                                    for j in range(i + 1, min(i + 10, len(file_lines))):
+                                        if '<button' in file_lines[j]:
+                                            has_close = False
+                                            for k in range(i, j):
+                                                if '</button>' in file_lines[k]:
+                                                    has_close = True
+                                                    break
+                                            if not has_close:
+                                                print(f'  Possible match near line {i+1}')
                 except Exception as e:
                     print(f'Error reading {path}: {e}')
 

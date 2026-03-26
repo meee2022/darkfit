@@ -160,15 +160,45 @@ export const prepChat = internalMutation({
       .withIndex("by_user", (q: any) => q.eq("userId", userId))
       .first();
 
+    // جلب أحدث الفحوصات اليومية
+    const recentCheckins = await ctx.db
+      .query("dailyCheckins")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .order("desc")
+      .take(1);
+
+    // جلب النصائح الذكية النشطة
+    const activeInsights = await ctx.db
+      .query("aiInsights")
+      .withIndex("by_user_read", (q: any) => q.eq("userId", userId).eq("isRead", false))
+      .collect();
+
     let userContext = "";
     if (profile) {
       userContext = `
-معلومات المستخدم:
+[معلومات المستخدم الحيوية]
 - المستوى: ${profile.fitnessLevel || 'مبتدئ'}
-- الأهداف: ${profile.goals?.join('، ') || 'غير محدد'}
+- الهدف الرئيسي: ${profile.goal || profile.goals?.join('، ') || 'غير محدد'}
 - العمر: ${profile.age || 'غير محدد'}
 - الجنس: ${profile.gender === 'male' ? 'ذكر' : 'أنثى'}
+- الوزن الحالي: ${profile.currentWeight ? profile.currentWeight + ' كجم' : 'غير محدد'}
+- الوزن المستهدف: ${profile.targetWeight ? profile.targetWeight + ' كجم' : 'غير محدد'}
       `.trim();
+
+      if (recentCheckins.length > 0) {
+        const c = recentCheckins[0];
+        userContext += `\n[بيانات الفحص اليومي الأخير للمستخدم]
+- ساعات النوم: ${c.sleepHours} ساعة
+- جودة النوم: ${c.sleepQuality}
+- مستوى الإرهاق (من 10): ${c.fatigueScore}
+- مستوى ألم العضلات (من 10): ${c.sorenessLevel}`;
+      }
+
+      if (activeInsights.length > 0) {
+        userContext += `\n[تنبيهات المدرب الذكي الحالية للمستخدم]\n` + activeInsights.map((i: any) => `- ${i.titleAr}: ${i.messageAr}`).join('\n');
+      }
+
+      userContext += "\n\n⚠️ تعليمات هامة للذكاء الاصطناعي: استخدم هذه المعلومات لتقديم إجابات مخصصة جداً ودقيقة لحالة المستخدم الحالية. إذا سألك عن سبب تعبه، راجع مستوى الفحص اليومي المذكور أعلاه وأعطه نصيحة مبنية عليه. تصرف وكأنك المدرب الشخصي الذي يراقب هذه الأرقام عن كثب.";
     }
 
     return {

@@ -1,12 +1,22 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useLanguage } from "../lib/i18n";
-import { Bell, Settings, User, Dumbbell, Activity, Zap, Edit2, Save, X, Camera, Award, Flame } from "lucide-react";
+import { FastingSettings } from "./FastingSettings";
+import { BadgesPage } from "./BadgesPage";
+import { XPBar } from "./XPBar";
+import { RegionSettings } from "./RegionSettings";
+import { MapPin, Bell, Settings, User, Dumbbell, Activity, Zap, Edit2, Save, X, Camera, Award, Flame, Trash2, AlertTriangle, HeartPulse, Target, TrendingUp, Share2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ProgressPhotos } from "./ProgressPhotos";
-import { Link } from "react-router-dom";
 import { getNotificationSettings, saveNotificationSettings } from "./NotificationManager";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { ShareCard } from "./ShareCard";
+import { ComparativeAnalytics } from "./ComparativeAnalytics";
+import { ReportGenerator } from "./ReportGenerator";
+import { SleepTrendsChart } from "./SleepTrendsChart";
+import { BodyCompositionChart } from "./BodyCompositionChart";
+import { TrainingVolumeChart } from "./TrainingVolumeChart";
 
 export function ProfileSection({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const { language } = useLanguage();
@@ -19,10 +29,30 @@ export function ProfileSection({ onNavigate }: { onNavigate?: (tab: string) => v
   const achievements = useQuery(api.userProgress.getAchievements) || [];
   const myPlans = useQuery(api.plans.getMyAssignedPlans, {}) || [];
   const workoutHistory = useQuery(api.exercises.getUserWorkoutHistory) || [];
+  const gamificationProgress = useQuery(api.gamification.getProgress);
 
-  const [activeTab, setActiveTab] = useState<"info" | "plans" | "activity" | "devices" | "photos" | "settings">("info");
+  const deleteAccount = useMutation(api.userDeletion.deleteAccount);
+  const { signOut } = useAuthActions();
+
+  const [activeTab, setActiveTab] = useState<"info" | "plans" | "activity" | "devices" | "photos" | "settings" | "fasting" | "region" | "analytics">("info");
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<any>({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteAccount();
+      await signOut();
+      window.location.href = "/";
+    } catch (error: any) {
+      toast.error(error.message || (isAr ? "فشل حذف الحساب" : "Failed to delete account"));
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   if (!profile) {
     return (
@@ -41,7 +71,8 @@ export function ProfileSection({ onNavigate }: { onNavigate?: (tab: string) => v
   const membershipType = profile.membershipType || (isAr ? "عضو" : "Member");
   const memberSince = profile.memberSince || "2023";
   const goal = profile.goal || (isAr ? "تنشيف" : "Toning");
-  const currentWeight = profile.currentWeight || profile.weight || 0;
+  const latestWeightLog = weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].weight : null;
+  const currentWeight = latestWeightLog || profile.currentWeight || profile.weight || 0;
   const targetWeight = profile.targetWeight || 0;
   const progress = currentWeight && targetWeight
     ? Math.min(Math.round(((currentWeight - targetWeight) / (currentWeight - targetWeight + 10)) * 100), 100)
@@ -409,6 +440,66 @@ export function ProfileSection({ onNavigate }: { onNavigate?: (tab: string) => v
               )}
             </div>
           </div>
+
+          <div className="flex justify-center -mt-4 pb-2">
+            <button 
+                onClick={() => setIsShareOpen(true)}
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-[#39ff14] font-black text-sm hover:bg-[#39ff14]/10 hover:border-[#39ff14]/30 transition-all shadow-[0_0_20px_rgba(57,255,20,0.05)]"
+            >
+                <Share2 className="w-4 h-4" />
+                {isAr ? "شارك تقدمك 📊" : "Share Progress 📊"}
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Stats Overview */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* BMI */}
+          {(() => {
+            const h = profile.height || 0;
+            const w = currentWeight;
+            if (!w || !h) return null;
+            const bmi = w / (h / 100) ** 2;
+            const bmiStr = bmi.toFixed(1);
+            const cat = bmi < 18.5 ? (isAr ? "نحيف" : "Underweight") : bmi < 25 ? (isAr ? "طبيعي" : "Normal") : bmi < 30 ? (isAr ? "زائد" : "Overweight") : (isAr ? "سمنة" : "Obese");
+            const catColor = bmi < 18.5 ? "text-sky-400" : bmi < 25 ? "text-[#59f20d]" : bmi < 30 ? "text-amber-400" : "text-rose-400";
+            return (
+              <div className="bg-[#0a0d08] rounded-2xl border border-zinc-800 p-4 text-center hover:border-rose-500/30 transition-colors">
+                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-rose-500/20 flex items-center justify-center">
+                  <HeartPulse className="w-5 h-5 text-rose-400" />
+                </div>
+                <p className="text-2xl font-black text-white">{bmiStr}</p>
+                <p className={`text-xs font-bold mt-1 ${catColor}`}>{cat}</p>
+              </div>
+            );
+          })()}
+
+          {/* Total Workouts */}
+          <div className="bg-[#0a0d08] rounded-2xl border border-zinc-800 p-4 text-center hover:border-[#59f20d]/30 transition-colors">
+            <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-[#59f20d]/20 flex items-center justify-center">
+              <Dumbbell className="w-5 h-5 text-[#59f20d]" />
+            </div>
+            <p className="text-2xl font-black text-white">{workoutHistory.length}</p>
+            <p className="text-xs text-zinc-400 font-bold mt-1">{isAr ? "تمرين" : "Workouts"}</p>
+          </div>
+
+          {/* Completion % */}
+          <div className="bg-[#0a0d08] rounded-2xl border border-zinc-800 p-4 text-center hover:border-blue-500/30 transition-colors">
+            <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-blue-500/20 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-blue-400" />
+            </div>
+            <p className="text-2xl font-black text-white">{progress}%</p>
+            <p className="text-xs text-zinc-400 font-bold mt-1">{isAr ? "الإنجاز" : "Progress"}</p>
+          </div>
+
+          {/* Streak */}
+          <div className="bg-[#0a0d08] rounded-2xl border border-zinc-800 p-4 text-center hover:border-orange-500/30 transition-colors">
+            <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-orange-500/20 flex items-center justify-center">
+              <Flame className="w-5 h-5 text-orange-400" />
+            </div>
+            <p className="text-2xl font-black text-white">{streaks?.currentStreak || 0}</p>
+            <p className="text-xs text-zinc-400 font-bold mt-1">{isAr ? "سلسلة أيام" : "Day Streak"}</p>
+          </div>
         </div>
 
         {/* Goal Summary Card */}
@@ -570,6 +661,14 @@ export function ProfileSection({ onNavigate }: { onNavigate?: (tab: string) => v
           )}
         </div>
 
+        {/* === GAMIFICATION: XP Bar === */}
+        <XPBar />
+
+        {/* === GAMIFICATION: Badges === */}
+        <div className="bg-[#0a0d08] backdrop-blur-xl rounded-3xl border-2 border-zinc-800 p-6">
+          <BadgesPage />
+        </div>
+
         {/* Personal Info Display */}
         <div className="bg-[#0a0d08] backdrop-blur-xl rounded-3xl border-2 border-zinc-800 p-6">
           <div className="flex items-center justify-between mb-6">
@@ -667,6 +766,28 @@ export function ProfileSection({ onNavigate }: { onNavigate?: (tab: string) => v
           </button>
 
           <button
+            onClick={() => setActiveTab("fasting")}
+            className={`p-4 rounded-2xl border-2 transition-all ${activeTab === "fasting"
+              ? "bg-amber-500/20 border-amber-500 text-white"
+              : "bg-[#1a2318]/50 border-amber-500/30 text-zinc-400 hover:border-amber-500/60"
+              }`}
+          >
+            <span className="text-2xl mx-auto mb-2 block text-center">🌙</span>
+            <p className="text-sm font-bold">{isAr ? "الصيام" : "Fasting"}</p>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("region")}
+            className={`p-4 rounded-2xl border-2 transition-all ${activeTab === "region"
+              ? "bg-[#59f20d]/20 border-[#59f20d] text-white"
+              : "bg-[#1a2318]/50 border-[#59f20d]/30 text-zinc-400 hover:border-[#59f20d]/60"
+              }`}
+          >
+            <MapPin className="w-6 h-6 mx-auto mb-2" />
+            <p className="text-sm font-bold">{isAr ? "المنطقة" : "Region"}</p>
+          </button>
+
+          <button
             onClick={() => setActiveTab("devices")}
             className={`p-4 rounded-2xl border-2 transition-all ${activeTab === "devices"
               ? "bg-[#59f20d]/20 border-[#59f20d] text-white"
@@ -675,6 +796,17 @@ export function ProfileSection({ onNavigate }: { onNavigate?: (tab: string) => v
           >
             <Settings className="w-6 h-6 mx-auto mb-2" />
             <p className="text-sm font-bold">{isAr ? "الأجهزة المتصلة" : "Connected Devices"}</p>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab("analytics")}
+            className={`p-4 rounded-2xl border-2 transition-all ${activeTab === "analytics"
+              ? "bg-[#59f20d]/20 border-[#59f20d] text-white"
+              : "bg-[#1a2318]/50 border-[#59f20d]/30 text-zinc-400 hover:border-[#59f20d]/60"
+              }`}
+          >
+            <Activity className="w-6 h-6 mx-auto mb-2" />
+            <p className="text-sm font-bold">{isAr ? "التحليلات والتقارير" : "Analytics & Reports"}</p>
           </button>
           <button
             onClick={() => setActiveTab("photos")}
@@ -694,7 +826,96 @@ export function ProfileSection({ onNavigate }: { onNavigate?: (tab: string) => v
           </div>
         )}
 
+        {activeTab === "fasting" && <FastingSettings />}
+        {activeTab === "region" && <RegionSettings />}
+
         {/* Tab Content Placeholder */}
+        {activeTab === "activity" && (
+          <div className="mt-8 animate-fadeIn space-y-6 max-w-4xl mx-auto">
+            <h2 className="text-2xl font-black text-white mb-6">
+              {isAr ? "الربط الصحي وسجل النشاط" : "Health Sync & Activity Lab"}
+            </h2>
+            
+            {/* Health Connectors */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Apple Health Card */}
+              <div className="bg-gradient-to-br from-[#161616] to-[#0a0a0a] border border-white/5 rounded-[2rem] p-6 relative flex flex-col">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-rose-500"><path d="M12 2A2 2 0 0 1 14 0c0 1.1-.9 2-2 2 .05-.03 0 0 0 0zm4.28 11.23c-2.31 0-3.32-1.57-5.35-1.57-1.92 0-3.6 1.48-4.66 3.19C4.54 17.5 7.15 24 9.17 24c1.19 0 1.83-.87 3.32-.87 1.44 0 2.05.87 3.31.87 2.14 0 4.2-5.4 5.37-8.15-2.09-.89-3.05-2.9-2.61-4.62zm-.89-2.97c1.37-1.35 1.76-3.38 1.4-4.87-1.53.2-3.37 1.25-4.52 2.62-1.25 1.5-1.95 3.44-1.6 4.97 1.57.17 3.42-.92 4.72-2.72z" /></svg>
+                    {isAr ? "مزامنة Apple Health" : "Apple Health"}
+                  </h3>
+                  <span className="px-3 py-1 bg-rose-500/10 text-rose-500 rounded-full text-[10px] font-black uppercase tracking-widest">{isAr ? "غير متصل" : "Offline"}</span>
+                </div>
+                
+                <div className="flex items-center gap-5 mt-auto">
+                  <div className="relative w-[88px] h-[88px] shrink-0">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="#fb7185" strokeWidth="6" strokeLinecap="round" strokeDasharray="251 251" />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-xl font-black text-white">0</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white mb-1">{isAr ? "خطوات اليوم" : "Today's Steps"}</p>
+                    <p className="text-xs font-medium text-zinc-500 mb-4 leading-relaxed">{isAr ? "اربط التطبيق لسحب بيانات المشي والجري تلقائياً." : "Connect to auto-sync walking and running data."}</p>
+                    <button className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-black text-xs rounded-xl transition-all shadow-lg shadow-rose-500/20 active:scale-95">
+                      {isAr ? "ربط الآن" : "Connect Now"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Google Fit Card */}
+              <div className="bg-gradient-to-br from-[#161616] to-[#0a0a0a] border border-white/5 rounded-[2rem] p-6 relative flex flex-col">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-[#4285F4]"><path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z" /></svg>
+                    {isAr ? "مزامنة Google Fit" : "Google Fit"}
+                  </h3>
+                  <span className="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full text-[10px] font-black uppercase tracking-widest">{isAr ? "غير متصل" : "Offline"}</span>
+                </div>
+                
+                <div className="flex items-center gap-5 mt-auto">
+                  <div className="relative w-[88px] h-[88px] shrink-0">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="#4285F4" strokeWidth="6" strokeLinecap="round" strokeDasharray="251 251" />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-xl font-black text-white">0</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white mb-1">{isAr ? "النشاط اليومي والسعرات" : "Activity & Calories"}</p>
+                    <p className="text-xs font-medium text-zinc-500 mb-4 leading-relaxed">{isAr ? "اسحب المسافة المقطوعة من نظام أندرويد." : "Sync distance and calories from local Android."}</p>
+                    <button className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-black text-xs rounded-xl transition-all shadow-lg shadow-blue-500/20 active:scale-95">
+                      {isAr ? "ربط الآن" : "Connect Now"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Explanatory Info Card */}
+            <div className="bg-[#111] border border-[#59f20d]/20 rounded-[2rem] p-8 text-center flex flex-col items-center">
+              <div className="w-16 h-16 rounded-full bg-[#59f20d]/10 flex items-center justify-center mb-5">
+                <Activity className="w-8 h-8 text-[#59f20d]" />
+              </div>
+              <h3 className="text-lg font-black text-white mb-3">
+                {isAr ? "كيف تعمل تتبع الخطوات التلقائية؟" : "How does automated tracking work?"}
+              </h3>
+              <p className="text-sm font-medium leading-relaxed text-zinc-400 max-w-xl mx-auto">
+                {isAr 
+                  ? "لا تحتاج إلى إضافة تطبيقات المشي الخاصة بشكل فردي (مثل Pacer). كل ما عليك هو إعطاء الصلاحية لمنصة الصحة المركزية في جهازك، وسيقوم DarkFit بسحب مجهودك من جميع التطبيقات والساعات الذكية التي تستخدمها لتضاف إلى تحليلات المدرب الذكي!" 
+                  : "You don't need to link individual walking apps (like Pedometer). Simply grant permission to your device's core Health Center, and DarkFit will seamlessly aggregate your effort across all tracker apps and smartwatches you use!"}
+              </p>
+            </div>
+          </div>
+        )}
+
         {activeTab === "plans" && (
           <div className="mt-8 animate-fadeIn">
             {myPlans.length === 0 ? (
@@ -957,39 +1178,51 @@ export function ProfileSection({ onNavigate }: { onNavigate?: (tab: string) => v
         )}
 
         {activeTab === "settings" && (
-          <div className="space-y-6">
+          <div className="mt-8 animate-fadeIn space-y-6 max-w-3xl mx-auto">
             <h2 className="text-2xl font-black text-white">{isAr ? "إعدادات الإشعارات" : "Notification Settings"}</h2>
+            
+            {/* Master Toggles */}
             <div className="bg-[#0a0f0a] border border-green-900 rounded-3xl p-6 space-y-4">
+              <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-2">
+                {isAr ? "التنبيهات" : "Alerts"}
+              </h3>
               {[
-                { key: "workout", label: isAr ? "تذكير التمرين اليومي" : "Daily Workout Reminder", desc: isAr ? "تذكيرك بموعد تمرينك المحدد" : "Remind you of your scheduled workout" },
-                { key: "meals", label: isAr ? "تذكير الوجبات" : "Meal Reminders", desc: isAr ? "تذكيرك بمواعيد الوجبات الأساسية" : "Remind you of main meal times" },
-                { key: "water", label: isAr ? "تذكير شرب الماء" : "Water Reminders", desc: isAr ? "تذكيرك بشرب الماء كل ساعتين" : "Remind you to drink water every 2 hours" },
+                { key: "workout", icon: "💪", label: isAr ? "تذكير التمرين اليومي" : "Daily Workout Reminder", desc: isAr ? "تذكيرك بموعد تمرينك المحدد" : "Remind you of your scheduled workout" },
+                { key: "meals", icon: "🍽️", label: isAr ? "تذكير الوجبات" : "Meal Reminders", desc: isAr ? "تذكيرك بمواعيد الوجبات (فطور، غداء، سناك، عشاء)" : "Remind you of meal times (breakfast, lunch, snack, dinner)" },
+                { key: "water", icon: "💧", label: isAr ? "تذكير شرب الماء" : "Water Reminders", desc: isAr ? "تذكيرك بشرب الماء كل ساعتين (8 ص — 10 م)" : "Reminders to drink water every 2 hours (8 AM — 10 PM)" },
               ].map((s) => {
                 const settings = getNotificationSettings();
                 return (
-                  <div key={s.key} className="flex items-center justify-between p-4 bg-zinc-900/50 rounded-2xl border border-zinc-800">
-                    <div>
-                      <h4 className="font-bold text-white mb-1">{s.label}</h4>
-                      <p className="text-xs text-zinc-500">{s.desc}</p>
+                  <div key={s.key} className="flex items-center justify-between p-4 bg-zinc-900/50 rounded-2xl border border-zinc-800 hover:border-zinc-700 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{s.icon}</span>
+                      <div>
+                        <h4 className="font-bold text-white mb-0.5">{s.label}</h4>
+                        <p className="text-xs text-zinc-500">{s.desc}</p>
+                      </div>
                     </div>
                     <button
                       onClick={() => {
                         const current = getNotificationSettings();
                         saveNotificationSettings({ [s.key]: !(current as any)[s.key] });
-                        setActiveTab("settings"); // Force re-render
+                        setActiveTab("settings");
                         toast.success(isAr ? "تم تحديث الإعدادات" : "Settings updated");
                       }}
-                      className={`w-14 h-7 rounded-full transition-colors relative ${(settings as any)[s.key] ? "bg-[#59f20d]" : "bg-zinc-800"
-                        }`}
+                      className={`w-14 h-7 rounded-full transition-colors relative shrink-0 ${(settings as any)[s.key] ? "bg-[#59f20d]" : "bg-zinc-800"}`}
                     >
-                      <div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all ${(settings as any)[s.key] ? "left-8" : "left-1"
-                        }`} />
+                      <div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all shadow-md ${(settings as any)[s.key] ? "left-8" : "left-1"}`} />
                     </button>
                   </div>
                 );
               })}
+            </div>
 
-              {getNotificationSettings().workout && (
+            {/* Workout Time */}
+            {getNotificationSettings().workout && (
+              <div className="bg-[#0a0f0a] border border-green-900 rounded-3xl p-6">
+                <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-4">
+                  {isAr ? "⏰ وقت التمرين" : "⏰ Workout Time"}
+                </h3>
                 <div className="p-4 bg-zinc-900/50 rounded-2xl border border-zinc-800 flex items-center justify-between">
                   <span className="text-sm font-bold text-white">{isAr ? "وقت تذكير التمرين" : "Workout Reminder Time"}</span>
                   <input
@@ -997,17 +1230,86 @@ export function ProfileSection({ onNavigate }: { onNavigate?: (tab: string) => v
                     value={getNotificationSettings().workoutTime}
                     onChange={(e) => {
                       saveNotificationSettings({ workoutTime: e.target.value });
-                      setActiveTab("settings"); // Force re-render
+                      setActiveTab("settings");
                     }}
-                    className="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 text-white text-sm"
+                    className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:border-[#59f20d] focus:outline-none transition-colors"
                   />
                 </div>
-              )}
+              </div>
+            )}
+
+            {/* Meal Times Configuration */}
+            {getNotificationSettings().meals && (
+              <div className="bg-[#0a0f0a] border border-green-900 rounded-3xl p-6">
+                <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-4">
+                  {isAr ? "🍴 مواعيد الوجبات" : "🍴 Meal Schedule"}
+                </h3>
+                <div className="space-y-3">
+                  {[
+                    { key: "breakfastTime", icon: "🍳", label: isAr ? "الفطور" : "Breakfast" },
+                    { key: "lunchTime", icon: "🥗", label: isAr ? "الغداء" : "Lunch" },
+                    { key: "snackTime", icon: "🥜", label: isAr ? "السناك" : "Snack" },
+                    { key: "dinnerTime", icon: "🍽️", label: isAr ? "العشاء" : "Dinner" },
+                  ].map((meal) => (
+                    <div key={meal.key} className="p-4 bg-zinc-900/50 rounded-2xl border border-zinc-800 flex items-center justify-between hover:border-zinc-700 transition-colors">
+                      <span className="text-sm font-bold text-white flex items-center gap-2">
+                        <span className="text-lg">{meal.icon}</span>
+                        {meal.label}
+                      </span>
+                      <input
+                        type="time"
+                        value={(getNotificationSettings() as any)[meal.key]}
+                        onChange={(e) => {
+                          saveNotificationSettings({ [meal.key]: e.target.value } as any);
+                          setActiveTab("settings");
+                        }}
+                        className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:border-[#59f20d] focus:outline-none transition-colors"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Info Card */}
+            <div className="bg-[#111] border border-[#59f20d]/20 rounded-2xl p-5 flex items-start gap-3">
+              <Bell className="w-5 h-5 text-[#59f20d] shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  {isAr
+                    ? "الإشعارات تظهر في زر الجرس 🔔 بالصفحة الرئيسية. سيتم تذكيرك بالوجبات والماء والتمرين حسب المواعيد المحددة أعلاه. يمكنك إغلاقها أو فتحها في أي وقت."
+                    : "Notifications appear in the bell icon 🔔 on the Dashboard. You'll be reminded about meals, water, and workouts based on the schedule above. Toggle them on or off anytime."}
+                </p>
+              </div>
+            </div>
+
+
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {activeTab === "analytics" && (
+          <div className="mt-8 animate-fadeIn space-y-6 max-w-4xl mx-auto">
+            <h2 className="text-2xl font-black text-white px-2">
+              {isAr ? "التحليلات المتقدمة" : "Advanced Analytics"}
+            </h2>
+            
+            <ComparativeAnalytics />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <BodyCompositionChart />
+              <SleepTrendsChart />
+            </div>
+            
+            <TrainingVolumeChart />
+            
+            <div className="pt-6">
+              <ReportGenerator />
             </div>
           </div>
         )}
 
-        {activeTab !== "info" && activeTab !== "photos" && activeTab !== "plans" && activeTab !== "devices" && activeTab !== "activity" && activeTab !== "settings" && (
+        {activeTab !== "info" && activeTab !== "photos" && activeTab !== "plans" && activeTab !== "devices" && activeTab !== "activity" && activeTab !== "settings" && activeTab !== "analytics" && (
           <div className="bg-gradient-to-br from-[#1a2318]/90 to-[#0d1a0a]/90 backdrop-blur-xl rounded-3xl border-2 border-[#59f20d]/30 p-8 text-center mt-8">
             <p className="text-zinc-400">
               {isAr ? "قريباً..." : "Coming soon..."}
@@ -1015,6 +1317,48 @@ export function ProfileSection({ onNavigate }: { onNavigate?: (tab: string) => v
           </div>
         )}
       </div>
+      {/* Share Card Modal */}
+      {profile && (
+        <ShareCard 
+            isOpen={isShareOpen}
+            onClose={() => setIsShareOpen(false)}
+            type="monthly"
+            data={{
+                userName: profile.name,
+                titleAr: "إنجازاتي الشهرية",
+                stats: [
+                    { 
+                        labelAr: "الوزن", 
+                        labelEn: "Weight", 
+                        value: currentWeight, 
+                        unit: isAr ? " كجم" : " kg", 
+                        change: weightHistory.length > 1 ? (weightHistory[0].weight - currentWeight).toFixed(1) : undefined 
+                    },
+                    { 
+                        labelAr: "تمارين", 
+                        labelEn: "Workouts", 
+                        value: workoutHistory.length 
+                    },
+                    { 
+                        labelAr: "أطول سلسلة", 
+                        labelEn: "Longest Streak", 
+                        value: gamificationProgress?.longestStreak || 0 
+                    },
+                    { 
+                        labelAr: "المستوى", 
+                        labelEn: "Level", 
+                        value: gamificationProgress?.level || 1,
+                        unit: ` - ${(gamificationProgress as any)?.tierName || (isAr ? "رياضي" : "Athlete")}`
+                    },
+                    { 
+                        labelAr: "أرقام قياسية", 
+                        labelEn: "Personal Records", 
+                        value: (gamificationProgress?.badges || []).filter((b: any) => b.category === "workout").length 
+                    }
+                ]
+            }}
+        />
+      )}
     </div>
   );
 }
