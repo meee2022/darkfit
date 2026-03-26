@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 
-const OWNER_EMAIL = "eng.mohamed87@live.com";
+const OWNER_EMAIL = process.env.OWNER_EMAIL || "";
 
 function normEmail(x: any) {
   return String(x || "").trim().toLowerCase();
@@ -13,6 +13,11 @@ function normEmail(x: any) {
  * 👑 يضمن إن مالك التطبيق (Owner) دائمًا Admin
  */
 async function ensureOwnerAdmin(ctx: any, userId: any) {
+  // 🛡️ Fail safely if OWNER_EMAIL not configured
+  if (!OWNER_EMAIL) {
+    return; // Silently skip if not configured
+  }
+
   const identity = await ctx.auth.getUserIdentity();
   const email = normEmail((identity as any)?.email);
 
@@ -524,33 +529,9 @@ export const adminDeleteUser = mutation({
 });
 
 /* =========================
-   DEV ONLY: MAKE ME ADMIN (للتطوير فقط)
+   🗑️ devMakeMeAdmin - REMOVED FOR SECURITY
+   Use forceOwnerAdmin instead (owner-only)
 ========================= */
-
-export const devMakeMeAdmin = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new ConvexError("يجب تسجيل الدخول");
-
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_user", (q: any) => q.eq("userId", userId))
-      .first();
-
-    if (!profile) throw new ConvexError("الملف الشخصي غير موجود");
-
-    await ctx.db.patch(profile._id, {
-      isAdmin: true,
-      role: "admin"
-    });
-
-    return {
-      success: true,
-      message: "أصبحت Admin الآن! 🎉"
-    };
-  },
-});
 
 /* =========================
    UTILITY: FORCE OWNER ADMIN (للاستخدام في حالات الطوارئ)
@@ -561,6 +542,11 @@ export const forceOwnerAdmin = mutation({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("يجب تسجيل الدخول");
+
+    // 🛡️ Check if OWNER_EMAIL is configured
+    if (!OWNER_EMAIL) {
+      throw new ConvexError("OWNER_EMAIL غير مُعدّ في متغيرات البيئة");
+    }
 
     const identity = await ctx.auth.getUserIdentity();
     const email = normEmail((identity as any)?.email);
