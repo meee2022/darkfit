@@ -20,9 +20,9 @@ export function DashboardStats({
   tr,
 }: DashboardStatsProps) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mt-2 w-full">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 lg:gap-4 mt-2 w-full">
       <ModernStatCard
-        icon={<TrendingUp className="w-5 h-5" />}
+        icon={<TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />}
         label={tr("completion", "إنجاز الأسبوع")}
         value={`${completion}%`}
         iconColor="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
@@ -30,7 +30,7 @@ export function DashboardStats({
         progress={completion}
       />
       <ModernStatCard
-        icon={<Flame className="w-5 h-5" />}
+        icon={<Flame className="w-4 h-4 sm:w-5 sm:h-5" />}
         label={tr("burned_calories", "سعرة محروقة")}
         value={totalCalories > 0 ? totalCalories.toLocaleString() : 0}
         unit="kcal"
@@ -39,7 +39,7 @@ export function DashboardStats({
         progress={totalCalories > 0 ? Math.min(90, (totalCalories / 3000) * 100) : 0}
       />
       <ModernStatCard
-        icon={<Timer className="w-5 h-5" />}
+        icon={<Timer className="w-4 h-4 sm:w-5 sm:h-5" />}
         label={tr("workout_days", "أيام تمرين")}
         value={totalSessions}
         iconColor="bg-sky-500/20 text-sky-400 border border-sky-500/30"
@@ -47,7 +47,7 @@ export function DashboardStats({
         progress={totalSessions > 0 ? Math.min(90, (totalSessions / 30) * 100) : 0}
       />
       <ModernStatCard
-        icon={<Dumbbell className="w-5 h-5" />}
+        icon={<Dumbbell className="w-4 h-4 sm:w-5 sm:h-5" />}
         label={tr("total_hours", "إجمالي الساعات")}
         value={totalHours}
         unit="h"
@@ -57,7 +57,7 @@ export function DashboardStats({
       />
       {bmiData && (
         <ModernStatCard
-          icon={<HeartPulse className="w-5 h-5" />}
+          icon={<HeartPulse className="w-4 h-4 sm:w-5 sm:h-5" />}
           label={tr("bmi_title", "مؤشر كتلة الجسم")}
           value={bmiData.bmi}
           iconColor="bg-rose-500/20 text-rose-400 border border-rose-500/30"

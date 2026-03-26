@@ -3,24 +3,11 @@ import { motion } from "framer-motion";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import {
-  Dumbbell,
-  Salad,
-  HeartPulse,
-  Calculator,
-  TrendingUp,
-  Flame,
-  Timer,
-  Users,
-  Pill,
-  Bot,
   ArrowRight,
   Zap,
   Target,
-  Home,
-  ClipboardList,
   User,
   X,
-  Phone,
   Bell,
   AlertTriangle,
   Award,
@@ -33,270 +20,21 @@ import { getTimeBasedNotifications, getNotificationSettings } from "./Notificati
 import { FastingWidget } from "./FastingWidget";
 import { StrengthProgressionChart } from "./StrengthProgressionChart";
 import { XPBar } from "./XPBar";
-import { PrayerTimesWidget } from "./PrayerTimesWidget";
-import { HotClimateWidget } from "./HotClimateWidget";
 import { WorkoutOfTheDay } from "./WorkoutOfTheDay";
 import { PRBoard } from "./PRBoard";
 import { WeeklyReportCard } from "./WeeklyReportCard";
 
-type SectionId =
-  | "dashboard"
-  | "exercises"
-  | "nutrition"
-  | "supplements"
-  | "calculator"
-  | "health"
-  | "admin"
-  | "coaches"
-  | "fitbot"
-  | "profile"
-  | "account"
-  | "plans"
-  | "coachPlans"
-  | "workoutGenerator";
-
-/** helpers */
-function cn(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
-
-function safeTr(t: any, key: string, fallback: string) {
-  try {
-    const v = typeof t === "function" ? t(key as any) : "";
-    if (!v || v === key) return fallback;
-    return v;
-  } catch {
-    return fallback;
-  }
-}
-
-/** ===== Premium Stat Card ===== */
-
-function ModernStatCard({
-  icon,
-  label,
-  value,
-  iconColor,
-  variant = "default",
-  progress = 0,
-  unit,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  iconColor: string;
-  variant?: "default" | "radial" | "progress";
-  progress?: number;
-  unit?: string;
-}) {
-  // Resolve per-card accent color from iconColor class
-  const accentHex = iconColor.includes("emerald")
-    ? "#10b981"
-    : iconColor.includes("orange")
-    ? "#f97316"
-    : iconColor.includes("sky")
-    ? "#38bdf8"
-    : iconColor.includes("indigo")
-    ? "#818cf8"
-    : iconColor.includes("rose")
-    ? "#fb7185"
-    : "#59f20d";
-
-  // SVG ring config
-  const RING_SIZE = 84;
-  const R = 34;
-  const STROKE = 5;
-  const circ = 2 * Math.PI * R;
-  const clamped = Math.min(100, Math.max(0, progress));
-  const dashOffset = circ - (clamped / 100) * circ;
-
-  const showRing = variant === "radial" || variant === "progress";
-
-  return (
-    <div
-      className="group relative overflow-hidden rounded-3xl border border-white/[0.07] bg-gradient-to-b from-white/[0.07] to-black/50 backdrop-blur-xl flex flex-col items-center justify-center gap-2 p-4 sm:p-5 min-h-[150px] text-center cursor-default select-none transition-all duration-500 hover:-translate-y-1.5 hover:border-white/20"
-      style={{ boxShadow: `0 2px 40px -12px ${accentHex}55` }}
-    >
-      {/* Ambient glow blob */}
-      <div
-        className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full blur-2xl opacity-20 group-hover:opacity-50 transition-opacity duration-700 pointer-events-none"
-        style={{ background: accentHex }}
-      />
-
-      {/* Top shimmer line */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
-
-      {/* Ring or icon square */}
-      {showRing ? (
-        <div
-          className="relative flex items-center justify-center z-10"
-          style={{ width: RING_SIZE, height: RING_SIZE }}
-        >
-          <svg
-            width={RING_SIZE}
-            height={RING_SIZE}
-            viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
-            className="-rotate-90"
-          >
-            {/* Track */}
-            <circle
-              cx={RING_SIZE / 2}
-              cy={RING_SIZE / 2}
-              r={R}
-              fill="none"
-              stroke="rgba(255,255,255,0.06)"
-              strokeWidth={STROKE}
-            />
-            {/* Progress arc */}
-            <circle
-              cx={RING_SIZE / 2}
-              cy={RING_SIZE / 2}
-              r={R}
-              fill="none"
-              stroke={accentHex}
-              strokeWidth={STROKE}
-              strokeDasharray={circ}
-              strokeDashoffset={dashOffset}
-              strokeLinecap="round"
-              style={{
-                transition: "stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1)",
-                filter: `drop-shadow(0 0 5px ${accentHex})`,
-              }}
-            />
-          </svg>
-          {/* Icon inside ring */}
-          <div
-            className="absolute inset-0 flex items-center justify-center transition-transform duration-500 group-hover:scale-110"
-            style={{ color: accentHex }}
-          >
-            <div className="opacity-90 group-hover:opacity-100">{icon}</div>
-          </div>
-        </div>
-      ) : (
-        <div
-          className={cn(
-            "w-14 h-14 rounded-2xl flex items-center justify-center border shadow-xl transition-transform duration-500 group-hover:scale-110 z-10",
-            iconColor
-          )}
-        >
-          <div className="scale-125">{icon}</div>
-        </div>
-      )}
-
-      {/* Value + Unit */}
-      <div className="flex items-baseline justify-center gap-1 z-10 leading-none mt-1">
-        <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-          {value}
-        </span>
-        {unit && (
-          <span
-            className="text-[10px] font-black uppercase tracking-widest"
-            style={{ color: accentHex }}
-          >
-            {unit}
-          </span>
-        )}
-      </div>
-
-      {/* Label */}
-      <p className="text-[10px] sm:text-[11px] text-white/40 font-semibold uppercase tracking-widest z-10 leading-tight px-1">
-        {label}
-      </p>
-
-      {/* Thin progress bar below label for "progress" variant */}
-      {variant === "progress" && (
-        <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden z-10">
-          <div
-            className="h-full rounded-full transition-all duration-[1400ms] ease-out"
-            style={{
-              width: `${clamped}%`,
-              background: accentHex,
-              boxShadow: `0 0 8px ${accentHex}`,
-            }}
-          />
-        </div>
-      )}
-
-      {/* Bottom accent line on hover */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-[2px] opacity-0 scale-x-0 group-hover:opacity-100 group-hover:scale-x-100 transition-all duration-700 origin-center pointer-events-none"
-        style={{ background: `linear-gradient(to right, transparent, ${accentHex}, transparent)` }}
-      />
-    </div>
-  );
-}
-
-/** ===== Modern Section Card with Image ===== */
-
-function ModernSectionCard({
-  title,
-  description,
-  image,
-  exploreLabel,
-  onClick,
-}: {
-  title: string;
-  description: string;
-  image: string;
-  exploreLabel: string;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="group relative flex flex-col overflow-hidden rounded-2xl bg-[#1c1c1c] border border-transparent hover:border-[#59f20d] transition-all duration-300 hover:scale-[1.02] text-right"
-    >
-      {/* Background Image Area */}
-      <div className="relative h-64 w-full overflow-hidden bg-[#111]">
-        <img
-          src={image}
-          alt={title}
-          className="w-full h-full object-cover object-[50%_30%] group-hover:scale-110 transition-transform duration-700"
-        />
-        {/* Dark gradient from bottom to make text readable */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-80" />
-        
-        {/* Title placed inside the image overlay, bottom right */}
-        <h3 className="absolute bottom-4 right-4 text-2xl font-black text-[#59f20d] drop-shadow-lg">
-          {title}
-        </h3>
-      </div>
-
-      {/* Thin line separating image and content */}
-      <div className="h-[1px] w-full bg-white/10" />
-
-      {/* Content Area */}
-      <div className="relative p-4 space-y-3 bg-[#1c1c1c]">
-        <p className="text-sm text-white/50 leading-relaxed max-w-full font-medium">
-          {description}
-        </p>
-
-        {/* Arrow and Text */}
-        <div className="flex items-center justify-start gap-2 text-[#59f20d] text-sm font-bold pt-1 flex-row-reverse w-fit ml-auto">
-          <span>{exploreLabel}</span>
-          <ArrowRight className="w-4 h-4 rtl:rotate-180 group-hover:rtl:-translate-x-1 transition-transform" />
-        </div>
-      </div>
-    </button>
-  );
-}
-
-/** ===== Info Card ===== */
-
-function InfoCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="overflow-hidden rounded-3xl bg-[#1c1c1c] border border-white/[0.08] hover:border-[#59f20d] transition-all duration-300 p-6 text-right">
-      <h3 className="mb-4 text-sm font-bold text-white/70">{title}</h3>
-      {children}
-    </div>
-  );
-}
+// Import sub-components
+import { 
+  DashboardStats, 
+  DashboardQuickActions, 
+  DashboardBMICard, 
+  DashboardFooter,
+  ModernSectionCard,
+  cn,
+  safeTr
+} from "./dashboard";
+import type { SectionId } from "./dashboard";
 
 /** ===== Main Component ===== */
 
@@ -726,53 +464,15 @@ export function Dashboard({
               </div>
             </div>
 
-            {/* Stats Grid - Premium Ring Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mt-2 w-full">
-              <ModernStatCard
-                icon={<TrendingUp className="w-5 h-5" />}
-                label={tr("completion", "إنجاز الأسبوع")}
-                value={`${completion}%`}
-                iconColor="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                variant="progress"
-                progress={completion}
-              />
-              <ModernStatCard
-                icon={<Flame className="w-5 h-5" />}
-                label={tr("burned_calories", "سعرة محروقة")}
-                value={totalCalories > 0 ? totalCalories.toLocaleString() : 0}
-                unit="kcal"
-                iconColor="bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                variant="radial"
-                progress={totalCalories > 0 ? Math.min(90, (totalCalories / 3000) * 100) : 0}
-              />
-              <ModernStatCard
-                icon={<Timer className="w-5 h-5" />}
-                label={tr("workout_days", "أيام تمرين")}
-                value={totalSessions}
-                iconColor="bg-sky-500/20 text-sky-400 border border-sky-500/30"
-                variant="radial"
-                progress={totalSessions > 0 ? Math.min(90, (totalSessions / 30) * 100) : 0}
-              />
-              <ModernStatCard
-                icon={<Dumbbell className="w-5 h-5" />}
-                label={tr("total_hours", "إجمالي الساعات")}
-                value={totalHours}
-                unit="h"
-                iconColor="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
-                variant="radial"
-                progress={totalHours > 0 ? Math.min(90, (totalHours / 100) * 100) : 0}
-              />
-              {bmiData && (
-                <ModernStatCard
-                  icon={<HeartPulse className="w-5 h-5" />}
-                  label={tr("bmi_title", "مؤشر كتلة الجسم")}
-                  value={bmiData.bmi}
-                  iconColor="bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                  variant="radial"
-                  progress={Math.min(90, Math.max(10, ((parseFloat(bmiData.bmi) - 15) / 25) * 100))}
-                />
-              )}
-            </div>
+            {/* Stats Grid - Using DashboardStats component */}
+            <DashboardStats
+              completion={completion}
+              totalCalories={totalCalories}
+              totalSessions={totalSessions}
+              totalHours={totalHours}
+              bmiData={bmiData}
+              tr={tr}
+            />
 
             {/* CTA Button Align Right */}
             <div className="flex w-full justify-start pt-2 mb-2">
@@ -788,31 +488,8 @@ export function Dashboard({
         </div>
       </div>
 
-      {/* QUICK ACTIONS */}
-      <div className="mb-6">
-        <h2 className="text-lg font-black text-white mb-3 flex items-center gap-2">
-          <Zap className="w-5 h-5 text-[#59f20d]" />
-          {isAr ? "إجراءات سريعة" : "Quick Actions"}
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { id: "exercises", icon: "🏋️", label: isAr ? "سجّل تمرين" : "Log Workout", color: "#59f20d" },
-            { id: "nutrition", icon: "🥗", label: isAr ? "سجّل وجبة" : "Log Meal", color: "#fbbf24" },
-            { id: "health", icon: "💧", label: isAr ? "تتبع الصحة" : "Health Tracker", color: "#38bdf8" },
-            { id: "smartCoach", icon: "🤖", label: isAr ? "المدرب الذكي" : "Smart Coach", color: "#a78bfa" },
-          ].map((action) => (
-            <button
-              key={action.id}
-              onClick={() => onNavigate?.(action.id as SectionId)}
-              className="group relative overflow-hidden flex flex-col items-center gap-2 p-4 rounded-2xl border border-white/5 bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/15 transition-all duration-300 hover:-translate-y-0.5"
-            >
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: `radial-gradient(circle at center, ${action.color}10, transparent 70%)` }} />
-              <span className="text-2xl relative z-10">{action.icon}</span>
-              <span className="text-xs font-bold text-white/70 group-hover:text-white transition-colors relative z-10">{action.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* QUICK ACTIONS - Using DashboardQuickActions component */}
+      <DashboardQuickActions onNavigate={onNavigate} isAr={isAr} />
 
       {/* AI WEEKLY REPORT */}
       <div className="mb-6">
@@ -830,71 +507,13 @@ export function Dashboard({
         <StrengthProgressionChart />
       </div>
 
-      {/* COMPACT BMI & PROGRESS CARD - PREMIUM RE-DESIGN */}
-      <div className="mb-6 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] border border-white/5 relative shadow-2xl" dir={isAr ? "rtl" : "ltr"}>
-        
-        {/* Top bar: BMI title + value */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/2">
-          <div className="flex flex-col">
-            <span className="text-[11px] font-black text-white uppercase tracking-[0.1em]">{tr("bmi_title", "مؤشر كتلة الجسم")}</span>
-            <span className="text-xs font-bold text-[#59f20d]">{bmiData?.category || ""}</span>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-black text-white tracking-tighter">{bmiData?.bmi || "—"}</span>
-          </div>
-        </div>
-
-        {/* BMI Progress Bar - Enhanced Graphic */}
-        <div className="relative h-2 w-full flex bg-zinc-900/50 p-[1px]">
-          <div className="h-full bg-sky-500/50 rounded-l-full" style={{ width: "25%" }} />
-          <div className="h-full bg-[#59f20d]/80" style={{ width: "50%" }} />
-          <div className="h-full bg-rose-500/50 rounded-r-full" style={{ width: "25%" }} />
-          {bmiData && (
-            <div
-              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white shadow-[0_0_12px_rgba(89,242,13,0.8)] z-10 rounded-full border-2 border-zinc-950 transition-all duration-1000 ease-out"
-              style={{
-                left: isAr 
-                  ? `${100 - Math.min(Math.max((parseFloat(bmiData.bmi) - 15) / 25 * 100, 2), 98)}%`
-                  : `${Math.min(Math.max((parseFloat(bmiData.bmi) - 15) / 25 * 100, 2), 98)}%`,
-                transform: "translate(-50%, -50%)"
-              }}
-            />
-          )}
-        </div>
-
-        {/* Info Grid: Height, Weight, Goal */}
-        <div className="grid grid-cols-3 divide-x divide-white/5 rtl:divide-x-reverse bg-white/1">
-          {/* Height */}
-          <div className="flex flex-col items-center justify-center py-5 gap-1 hover:bg-white/2 transition-colors">
-            <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{isAr ? "الطول" : "Height"}</span>
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-2xl font-black text-sky-400 italic">{userProfile?.height || "—"}</span>
-              <span className="text-[10px] font-bold text-white/30 lowercase">{isAr ? "سم" : "cm"}</span>
-            </div>
-          </div>
-
-          {/* Weight */}
-          <div className="flex flex-col items-center justify-center py-5 gap-1 hover:bg-white/2 transition-colors">
-            <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{isAr ? "الوزن" : "Weight"}</span>
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-2xl font-black text-[#59f20d] italic">{userProfile?.currentWeight || "—"}</span>
-              <span className="text-[10px] font-bold text-white/30 lowercase">{isAr ? "كجم" : "kg"}</span>
-            </div>
-          </div>
-
-          {/* Target */}
-          <div className="flex flex-col items-center justify-center py-5 gap-1 hover:bg-white/2 transition-colors">
-            <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{isAr ? "الهدف" : "Goal"}</span>
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-2xl font-black text-amber-400 italic">{userProfile?.targetWeight || "—"}</span>
-              <span className="text-[10px] font-bold text-white/30 lowercase">{isAr ? "كجم" : "kg"}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom subtle accent */}
-        <div className="h-1 w-full bg-gradient-to-r from-transparent via-[#59f20d]/10 to-transparent" />
-      </div>
+      {/* COMPACT BMI & PROGRESS CARD - Using DashboardBMICard component */}
+      <DashboardBMICard 
+        bmiData={bmiData} 
+        userProfile={userProfile} 
+        isAr={isAr} 
+        tr={tr} 
+      />
 
 
       {/* MAIN SECTIONS - Image-Based Cards */}
@@ -939,30 +558,8 @@ export function Dashboard({
         )}
       </div>
 
-      {/* PREMIUM FOOTER */}
-      <div className="mt-16 pb-12 flex flex-col items-center justify-center space-y-3 opacity-80" dir={isAr ? "rtl" : "ltr"}>
-        <div className="flex flex-col items-center gap-1">
-          <p className="text-xs font-bold text-white/70 tracking-widest text-center" dir="ltr">
-            &copy; {new Date().getFullYear()} DARK FIT. {isAr ? "جميع الحقوق محفوظة." : "All rights reserved."}
-          </p>
-          <div className="flex items-center justify-center gap-1.5 text-[11px] text-white/50 tracking-[0.1em]">
-            <span>{isAr ? "تطوير وإدارة:" : "Directed by"}</span>
-            <span className="text-[#59f20d] font-black">{isAr ? "المهندس محمد" : "Eng. Mohamed"}</span>
-          </div>
-        </div>
-        
-        <a 
-          href="https://wa.me/97430296555" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="mt-3 flex items-center justify-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 hover:border-[#59f20d]/50 hover:bg-[#59f20d]/10 transition-colors group"
-        >
-          <Phone className="w-3.5 h-3.5 text-zinc-400 group-hover:text-[#59f20d] transition-colors" />
-          <span className="text-xs font-black text-white/80 group-hover:text-white transition-colors tracking-widest" dir="ltr">
-            +974 30296555
-          </span>
-        </a>
-      </div>
+      {/* PREMIUM FOOTER - Using DashboardFooter component */}
+      <DashboardFooter isAr={isAr} />
 
     </div>
   );

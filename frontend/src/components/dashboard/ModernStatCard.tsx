@@ -33,10 +33,10 @@ export function ModernStatCard({
     ? "#fb7185"
     : "#59f20d";
 
-  // SVG ring config
-  const RING_SIZE = 84;
-  const R = 34;
-  const STROKE = 5;
+  // SVG ring config - smaller on mobile
+  const RING_SIZE = 64; // Reduced from 84
+  const R = 26; // Reduced from 34
+  const STROKE = 4; // Reduced from 5
   const circ = 2 * Math.PI * R;
   const clamped = Math.min(100, Math.max(0, progress));
   const dashOffset = circ - (clamped / 100) * circ;
@@ -45,12 +45,12 @@ export function ModernStatCard({
 
   return (
     <div
-      className="group relative overflow-hidden rounded-3xl border border-white/[0.07] bg-gradient-to-b from-white/[0.07] to-black/50 backdrop-blur-xl flex flex-col items-center justify-center gap-2 p-4 sm:p-5 min-h-[150px] text-center cursor-default select-none transition-all duration-500 hover:-translate-y-1.5 hover:border-white/20"
+      className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/[0.07] bg-gradient-to-b from-white/[0.07] to-black/50 backdrop-blur-xl flex flex-col items-center justify-center gap-1 sm:gap-2 p-2.5 sm:p-4 min-h-[110px] sm:min-h-[150px] text-center cursor-default select-none transition-all duration-500 hover:-translate-y-1.5 hover:border-white/20"
       style={{ boxShadow: `0 2px 40px -12px ${accentHex}55` }}
     >
       {/* Ambient glow blob */}
       <div
-        className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full blur-2xl opacity-20 group-hover:opacity-50 transition-opacity duration-700 pointer-events-none"
+        className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-16 sm:w-20 h-16 sm:h-20 rounded-full blur-2xl opacity-20 group-hover:opacity-50 transition-opacity duration-700 pointer-events-none"
         style={{ background: accentHex }}
       />
 
@@ -100,28 +100,28 @@ export function ModernStatCard({
             className="absolute inset-0 flex items-center justify-center transition-transform duration-500 group-hover:scale-110"
             style={{ color: accentHex }}
           >
-            <div className="opacity-90 group-hover:opacity-100">{icon}</div>
+            <div className="opacity-90 group-hover:opacity-100 scale-75 sm:scale-100">{icon}</div>
           </div>
         </div>
       ) : (
         <div
           className={cn(
-            "w-14 h-14 rounded-2xl flex items-center justify-center border shadow-xl transition-transform duration-500 group-hover:scale-110 z-10",
+            "w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center border shadow-xl transition-transform duration-500 group-hover:scale-110 z-10",
             iconColor
           )}
         >
-          <div className="scale-125">{icon}</div>
+          <div className="scale-100 sm:scale-125">{icon}</div>
         </div>
       )}
 
       {/* Value + Unit */}
-      <div className="flex items-baseline justify-center gap-1 z-10 leading-none mt-1">
-        <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+      <div className="flex items-baseline justify-center gap-0.5 sm:gap-1 z-10 leading-none mt-0.5 sm:mt-1">
+        <span className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight">
           {value}
         </span>
         {unit && (
           <span
-            className="text-[10px] font-black uppercase tracking-widest"
+            className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest"
             style={{ color: accentHex }}
           >
             {unit}
@@ -130,13 +130,13 @@ export function ModernStatCard({
       </div>
 
       {/* Label */}
-      <p className="text-[10px] sm:text-[11px] text-white/40 font-semibold uppercase tracking-widest z-10 leading-tight px-1">
+      <p className="text-[8px] sm:text-[10px] md:text-[11px] text-white/40 font-semibold uppercase tracking-wider sm:tracking-widest z-10 leading-tight px-0.5 sm:px-1 line-clamp-1">
         {label}
       </p>
 
       {/* Thin progress bar below label for "progress" variant */}
       {variant === "progress" && (
-        <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden z-10">
+        <div className="w-full h-0.5 sm:h-1 bg-white/5 rounded-full overflow-hidden z-10">
           <div
             className="h-full rounded-full transition-all duration-[1400ms] ease-out"
             style={{
