@@ -83,6 +83,30 @@ export const listPublic = query({
    ADMIN
 ========================= */
 
+// List all coaches (public, for chat selection)
+export const listAll = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("coaches").collect();
+    const visible = rows.filter((c: any) => c.isActive === true);
+    const out = await Promise.all(visible.map((c: any) => resolveCoachImage(ctx, c)));
+
+    return out
+      .sort((a: any, b: any) => (b._creationTime || 0) - (a._creationTime || 0))
+      .map((c: any) => ({
+        _id: c._id,
+        userId: c.userId, // Important for chat
+        name: c.name,
+        nameAr: c.nameAr,
+        specialty: c.specialty,
+        specialtyAr: c.specialtyAr,
+        rating: c.rating,
+        imageUrl: c.imageUrl,
+        imageResolved: c.imageResolved,
+      }));
+  },
+});
+
 export const adminList = query({
   args: {},
   handler: async (ctx) => {

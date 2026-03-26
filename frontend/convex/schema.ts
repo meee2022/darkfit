@@ -272,9 +272,11 @@ const applicationTables = {
     rating: v.optional(v.number()),
     isActive: v.boolean(),
     createdAt: v.number(),
+    userId: v.optional(v.id("users")), // Link to user account for chat
   })
     .index("by_active", ["isActive"])
-    .index("by_createdAt", ["createdAt"]),
+    .index("by_createdAt", ["createdAt"])
+    .index("by_user", ["userId"]),
 
   supplements: defineTable({
     category: v.union(
