@@ -781,6 +781,15 @@ const applicationTables = {
     mediaUrl: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_conversation", ["conversationId"]),
+
+  // 🛡️ Rate Limiting Table
+  rateLimits: defineTable({
+    userId: v.string(),
+    action: v.string(),
+    timestamp: v.number(),
+  })
+    .index("by_user_action", ["userId", "action"])
+    .index("by_timestamp", ["timestamp"]),
 };
 
 export default defineSchema({

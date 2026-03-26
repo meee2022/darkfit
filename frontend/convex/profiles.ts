@@ -5,6 +5,49 @@ import { ConvexError } from "convex/values";
 
 const OWNER_EMAIL = process.env.OWNER_EMAIL || "";
 
+/* =========================
+   🛡️ Rate Limiting Helper
+========================= */
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 10;
+
+async function checkRateLimit(ctx: any, userId: string, action: string): Promise<void> {
+  const windowStart = Date.now() - RATE_LIMIT_WINDOW;
+  
+  // Query recent actions by this user
+  const recentActions = await ctx.db
+    .query("rateLimits")
+    .withIndex("by_user_action", (q: any) => 
+      q.eq("userId", userId).eq("action", action)
+    )
+    .filter((q: any) => q.gte(q.field("timestamp"), windowStart))
+    .collect();
+  
+  if (recentActions.length >= MAX_REQUESTS_PER_WINDOW) {
+    throw new ConvexError("طلبات كثيرة جداً. انتظر دقيقة وحاول مجدداً.");
+  }
+  
+  // Log this action
+  await ctx.db.insert("rateLimits", {
+    userId,
+    action,
+    timestamp: Date.now(),
+  });
+}
+
+/* =========================
+   🛡️ Input Sanitization
+========================= */
+function sanitizeString(input: string | undefined): string {
+  if (!input) return "";
+  return input
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+=/gi, '')
+    .trim()
+    .slice(0, 1000); // Max 1000 chars
+}
+
 function normEmail(x: any) {
   return String(x || "").trim().toLowerCase();
 }

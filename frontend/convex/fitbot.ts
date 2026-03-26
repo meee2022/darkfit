@@ -4,6 +4,17 @@ import { v, ConvexError } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 /* =========================
+   🛡️ Input Sanitization
+========================= */
+function sanitizeInput(input: string): string {
+  return input
+    .replace(/[<>]/g, '') // Remove HTML tags
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, '') // Remove event handlers
+    .trim();
+}
+
+/* =========================
    فلترة الأسئلة الخطيرة
 ========================= */
 function isDangerousQuestion(question: string): boolean {
@@ -103,9 +114,11 @@ export const prepChat = internalMutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("يجب تسجيل الدخول أولاً");
 
-    const message = args.message.trim();
+    // 🛡️ Sanitize and validate input
+    const message = sanitizeInput(args.message);
     if (!message) throw new ConvexError("الرسالة فارغة");
     if (message.length > 500) throw new ConvexError("الرسالة طويلة جداً (حد أقصى 500 حرف)");
+    if (message.length < 2) throw new ConvexError("الرسالة قصيرة جداً");
 
     // التحقق من الحد اليومي
     const dailyCount = await getDailyQuestionCount(ctx, userId);
