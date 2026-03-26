@@ -14,11 +14,18 @@ export default defineConfig({
       '.preview.emergentcf.cloud',
       '.cluster-8.preview.emergentcf.cloud'
     ],
+    hmr: {
+      overlay: false, // Disable error overlay that can cause issues
+    },
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
     dedupe: ['react', 'react-dom'],
+  },
+  // Optimize build
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'framer-motion'],
   },
 });
