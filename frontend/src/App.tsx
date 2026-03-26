@@ -43,6 +43,10 @@ import { WorkoutTimer } from "./components/WorkoutTimer";
 import { PWAManager } from "./components/PWAManager";
 import { Onboarding } from "./components/Onboarding";
 
+// P3: Error Boundary & Offline Support
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { OfflineIndicator } from "./components/OfflineSupport";
+
 /* ============ Splash Screen ============ */
 
 function SplashScreen() {
@@ -169,7 +173,11 @@ export default function App() {
 
   // لو الـ Splash لسه ظاهر، رجّعه لوحده
   if (showSplash) {
-    return <SplashScreen />;
+    return (
+      <ErrorBoundary>
+        <SplashScreen />
+      </ErrorBoundary>
+    );
   }
 
   const path = typeof window !== "undefined" ? window.location.pathname : "/";
@@ -180,9 +188,11 @@ export default function App() {
   }
 
   return (
-    <div className="relative min-h-screen bg-[#0c0c0c] text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-300">
-      <Toaster position="top-center" richColors />
-      <div className="bg-app-gradient fixed inset-0 -z-10 opacity-80" />
+    <ErrorBoundary>
+      <div className="relative min-h-screen bg-[#0c0c0c] text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-300">
+        <Toaster position="top-center" richColors />
+        <OfflineIndicator />
+        <div className="bg-app-gradient fixed inset-0 -z-10 opacity-80" />
 
       {showOnboarding && (
         <Onboarding onComplete={() => setShowOnboarding(false)} />
@@ -381,6 +391,7 @@ export default function App() {
         )}
       </main>
     </div>
+    </ErrorBoundary>
   );
 }
 

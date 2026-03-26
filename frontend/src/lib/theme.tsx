@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { Sun, Moon, Monitor } from "lucide-react";
 
 export type ThemeMode = "light" | "dark" | "system";
 
@@ -13,6 +14,7 @@ type ThemeCtx = {
   resolvedTheme: "light" | "dark"; // الثيم الفعلي المطبق
   setTheme: (t: ThemeMode) => void;
   toggle: () => void;
+  isDark: boolean;
 };
 
 const ThemeContext = createContext<ThemeCtx | null>(null);
@@ -93,6 +95,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setThemeState((p) =>
           p === "dark" ? "light" : p === "light" ? "dark" : "dark"
         ),
+      isDark: resolvedTheme === "dark",
     }),
     [theme, resolvedTheme]
   );
@@ -146,6 +149,59 @@ export function ThemeToggleButton({ className = "" }: { className?: string }) {
           تبديل
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Compact Theme Toggle for Header/Navbar */
+export function ThemeToggleCompact({ className = "" }: { className?: string }) {
+  const { resolvedTheme, toggle } = useTheme();
+
+  return (
+    <button
+      onClick={toggle}
+      className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+        resolvedTheme === "dark"
+          ? "bg-zinc-800 hover:bg-zinc-700 text-yellow-400"
+          : "bg-amber-100 hover:bg-amber-200 text-amber-600"
+      } ${className}`}
+      aria-label={resolvedTheme === "dark" ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الداكن"}
+    >
+      {resolvedTheme === "dark" ? (
+        <Sun className="w-4 h-4" />
+      ) : (
+        <Moon className="w-4 h-4" />
+      )}
+    </button>
+  );
+}
+
+/** Modern Theme Switcher with 3 options */
+export function ThemeSwitcher({ className = "" }: { className?: string }) {
+  const { theme, setTheme } = useTheme();
+
+  const options: { value: ThemeMode; icon: React.ReactNode; label: string }[] = [
+    { value: "light", icon: <Sun className="w-4 h-4" />, label: "فاتح" },
+    { value: "dark", icon: <Moon className="w-4 h-4" />, label: "داكن" },
+    { value: "system", icon: <Monitor className="w-4 h-4" />, label: "تلقائي" },
+  ];
+
+  return (
+    <div className={`flex items-center gap-1 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 ${className}`}>
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => setTheme(opt.value)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            theme === opt.value
+              ? "bg-white dark:bg-zinc-700 text-[#59f20d] shadow-sm"
+              : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+          }`}
+        >
+          {opt.icon}
+          <span>{opt.label}</span>
+        </button>
+      ))}
     </div>
   );
 }
