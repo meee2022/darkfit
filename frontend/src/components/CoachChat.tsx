@@ -8,7 +8,7 @@ export function CoachChat() {
   const { language } = useLanguage();
   const isAr = language === "ar";
   const conversations = useQuery(api.messages.getMyConversations) || [];
-  const coaches = useQuery(api.coaches.listAll) || [];
+  const coaches = useQuery(api.coaches.listPublic, {}) || [];
   const [selectedConv, setSelectedConv] = useState<any>(null);
   const [showCoachList, setShowCoachList] = useState(false);
   const messages = useQuery(api.messages.getMessages, selectedConv ? { conversationId: selectedConv._id } : "skip") || [];
